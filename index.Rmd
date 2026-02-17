@@ -1,0 +1,12 @@
+---
+title: "PhD Data Analysis"
+---
+
+This site contains automated analysis for PhD research on water insecurity in Freetown, Sierra Leone.
+
+- [Daily Report](rmd/PhD_Dailys.html)
+- [Household Analysis](rmd/HH_Analysis.html)
+- [Water Source Analysis](rmd/Water_Source_Analysis.html)
+
+*Last rendered: `r format(Sys.time(), "%B %d, %Y at %I:%M %p %Z")`*
+

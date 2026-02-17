@@ -1,0 +1,21 @@
+name: "PhD Data Analysis"
+output_dir: "docs"
+navbar:
+  title: "PhD Data Analysis"
+  left:
+    - text: "Daily Report"
+      href: rmd/PhD_Dailys.html
+    - text: "Household Analysis"
+      href: rmd/HH_Analysis.html
+    - text: "Water Source Analysis"
+      href: rmd/Water_Source_Analysis.html
+output:
+  html_document:
+    theme: flatly
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 2
+    code_folding: hide
+
