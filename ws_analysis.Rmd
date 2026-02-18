@@ -1,0 +1,1088 @@
+---
+title: "Water Source Survey Analysis"
+date: "`r format(Sys.time(), '%B %d, %Y %H:%M')`"
+output: 
+  html_document:
+    toc: true
+    toc_float: 
+      collapsed: true
+      smooth_scroll: true
+    toc_depth: 2
+    code_folding: hide
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE)
+library(knitr)
+library(scales)
+library(kableExtra)
+library(ggspatial)
+library(gridExtra)
+library(grid)
+library(lemon)
+library(ggrepel)
+library(patchwork)
+library(magick)
+
+source("ws_cleanup.R")
+```
+
+```{r case_counts}
+# Calculate counts and complete cases for each community
+month_order <- c("Nov", "Jan", "Mar", "May", "Jul", "Sep")
+
+# Function to calculate complete cases
+calculate_complete <- function(data, current_month) {
+  months_up_to <- month_order[1:which(month_order == current_month)]
+  
+  data %>%
+    filter(!is.na(wsid), display_month %in% months_up_to) %>%
+    group_by(wsid) %>%
+    summarise(n_months = n_distinct(display_month), .groups = "drop") %>%
+    filter(n_months == length(months_up_to)) %>%
+    nrow()
+}
+
+# Calculate for each community in specified order
+communities <- c("Cockle Bay", "Dworzark", "Portee Rokupa")
+results <- map_df(communities, function(comm) {
+  comm_data <- ws_data %>% filter(community == comm)
+  
+  # Get unique wsids for this community
+  comm_wsids <- comm_data %>%
+    filter(!is.na(wsid)) %>%
+    distinct(wsid) %>%
+    nrow()
+  
+  counts <- comm_data %>%
+    filter(!is.na(display_month)) %>%
+    distinct(wsid, display_month) %>%
+    count(display_month, .drop = FALSE) %>%
+    pivot_wider(names_from = display_month, values_from = n, values_fill = 0)
+  
+  complete_cases <- tibble(
+    display_month = month_order
+  ) %>%
+    rowwise() %>%
+    mutate(complete = calculate_complete(comm_data, display_month)) %>%
+    pivot_wider(names_from = display_month, values_from = complete, values_fill = 0)
+  
+  # Combine counts and complete cases with line break
+  combined <- counts
+  for (month in month_order) {
+    if (month %in% names(counts) && month %in% names(complete_cases)) {
+      count_val <- counts[[month]]
+      complete_val <- complete_cases[[month]]
+      combined[[month]] <- if_else(count_val == 0, 
+                                    "", 
+                                    paste0(count_val, "<br>(", complete_val, "/", comm_wsids, ")"))
+    }
+  }
+  
+  combined %>%
+    mutate(community = comm,
+           Total = comm_data %>% distinct(wsid) %>% nrow())
+})
+
+# Add totals row
+# Get total unique wsids across all communities
+total_wsids <- ws_data %>%
+  filter(!is.na(wsid)) %>%
+  distinct(wsid) %>%
+  nrow()
+
+totals_counts <- ws_data %>%
+  filter(!is.na(display_month)) %>%
+  distinct(wsid, display_month) %>%
+  count(display_month, .drop = FALSE) %>%
+  pivot_wider(names_from = display_month, values_from = n, values_fill = 0)
+
+totals_complete <- tibble(
+  display_month = month_order
+) %>%
+  rowwise() %>%
+  mutate(complete = calculate_complete(ws_data, display_month)) %>%
+  pivot_wider(names_from = display_month, values_from = complete, values_fill = 0)
+
+# Combine totals counts and complete cases with line break
+totals <- totals_counts
+for (month in month_order) {
+  if (month %in% names(totals_counts) && month %in% names(totals_complete)) {
+    count_val <- totals_counts[[month]]
+    complete_val <- totals_complete[[month]]
+    totals[[month]] <- if_else(count_val == 0, 
+                                "", 
+                                paste0(count_val, "<br>(", complete_val, "/", total_wsids, ")"))
+  }
+}
+
+totals <- totals %>%
+  mutate(community = "Total",
+         Total = total_wsids)
+
+# Combine and format
+final_table <- results %>%
+  bind_rows(totals) %>%
+  rename(Community = community) %>%
+  select(Community, all_of(month_order), Total) %>%
+  kable(align = c('l', rep('c', length(month_order) + 1)), format = "html", escape = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  row_spec(nrow(results) + 1, bold = TRUE) %>%
+  footnote(general_title = "Values show total water sources surveyed that month. Numbers in parentheses show water sources surveyed in all months from November through that month (complete cases / total unique water sources in community).", general = "")
+
+final_table
+```
+
+## Mapping Source Type
+
+```{r pr_cb_map, message = F, warning = F, fig.width = 16, fig.height = 12, out.width = "100%"}
+# Function to create community map
+create_community_map <- function(community_name, shapefile, ws_data, source_colors) {
+  # Filter and convert to sf
+  sources <- ws_data %>%
+    filter(community == community_name, !is.na(gps_location), !is.na(wsid)) %>%
+    distinct(wsid, .keep_all = TRUE) %>%
+    separate(gps_location, into = c("latitude", "longitude", "altitude", "accuracy"), 
+             sep = " ", remove = FALSE, convert = TRUE) %>%
+    filter(!is.na(latitude), !is.na(longitude)) %>%
+    st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+  
+  # Create labels with counts for this community
+  counts <- sources %>%
+    st_drop_geometry() %>%
+    count(water_source_type) %>%
+    mutate(label = paste0(water_source_type, " (n=", n, ")"))
+  
+  all_types <- names(source_colors)
+  labels <- setNames(
+    ifelse(all_types %in% counts$water_source_type,
+           counts$label[match(all_types, counts$water_source_type)],
+           paste0(all_types, " (n=0)")),
+    all_types
+  )
+  
+  # Create map
+  ggplot() +
+    annotation_map_tile(type = "osm", zoomin = 0, progress = "none") +
+    geom_sf(data = shapefile, fill = NA, color = "black", linewidth = 1.5) +
+    geom_sf(data = sources, aes(fill = water_source_type), 
+            size = 5, shape = 21, color = "black", stroke = 1.5) +
+    scale_fill_manual(values = source_colors, labels = labels, drop = FALSE) +
+    labs(title = community_name) +
+    theme_minimal() +
+    theme(axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          axis.title = element_blank(),
+          legend.position = "top",
+          legend.title = element_blank(),
+          plot.title = element_text(hjust = 0.5, face = "bold", size = 20),
+          legend.text = element_text(size = 14))
+}
+# Read the shapefiles
+cockle_shapefile <- st_read("shapefiles/CockleBay.shp", quiet = TRUE)
+portee_shapefile <- st_read("shapefiles/PorteeRokupa.shp", quiet = TRUE)
+dworzark_shapefile <- st_read("shapefiles/Dworzark.shp", quiet = TRUE)
+# Define colors
+source_colors <- c(
+  "Open Well" = "#D2B48C",
+  "Closed Well" = "#5C4033",
+  "Private Tap" = "#FFB6C1",
+  "Public Tap" = "#DC143C",
+  "Surface Water" = "#87CEEB",
+  "Spring" = "#4682B4",
+  "Tank" = "#FFFFFF"
+)
+# Create maps
+p_cockle <- create_community_map("Cockle Bay", cockle_shapefile, ws_data, source_colors)
+p_portee <- create_community_map("Portee Rokupa", portee_shapefile, ws_data, source_colors)
+# Arrange maps side by side
+grid.arrange(p_cockle, p_portee, ncol = 2)
+```
+
+```{r dworzark_map, fig.width = 16, fig.height = 12, out.width = "100%"}
+# Dworzark map
+create_community_map("Dworzark", dworzark_shapefile, ws_data, source_colors)
+```
+
+# Analysis
+
+## Source Type
+```{r source_type}
+# Find the most recent month with >200 total sources
+latest_month <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month)) %>%
+  count(display_month) %>%
+  mutate(display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  filter(n > 200) %>%
+  filter(as.numeric(display_month) == max(as.numeric(display_month))) %>%
+  pull(display_month)
+
+# Calculate water source percentages by community for that month
+source_by_community <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month) & !is.na(water_source_type), display_month == latest_month) %>%
+  count(community, water_source_type) %>%
+  group_by(community) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100) %>%
+  ungroup()
+
+# Add total
+source_total <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month) & !is.na(water_source_type), display_month == latest_month) %>%
+  count(water_source_type) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         community = "Total")
+
+source_by_community <- bind_rows(source_by_community, source_total) %>%
+  mutate(community = factor(community, levels = c("Total", "Cockle Bay", "Dworzark", "Portee Rokupa")),
+         community_label = paste0(community, " (n=", total, ")"))
+
+source_by_community <- source_by_community %>%
+  mutate(community_label = reorder(community_label, as.numeric(community)))
+
+# Shared theme
+shared_theme <- theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.title = element_blank(),
+        axis.text.x = element_text(hjust = .5, size = 8))
+
+# Total plot
+p_total <- source_by_community %>%
+  filter(community == "Total") %>%
+  ggplot(aes(x = community_label, y = pct, fill = water_source_type)) +
+  geom_col(position = "stack", width = 0.7) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 3) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = ws_colors) +
+  labs(x = NULL, y = NULL) +
+  shared_theme +
+  theme(legend.position = "none")
+
+# Community plot
+p_community <- source_by_community %>%
+  filter(community != "Total") %>%
+  ggplot(aes(x = community_label, y = pct, fill = water_source_type)) +
+  geom_col(position = "stack", width = 0.55) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 2.5) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  scale_fill_manual(values = ws_colors) +
+  labs(x = NULL, y = NULL) +
+  shared_theme +
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 8))
+
+# Combine with Total taking half the chart
+combined <- p_total + p_community + 
+  plot_layout(widths = c(1, 1), guides = "collect") +
+  plot_annotation(title = paste0("Water Source Types (", latest_month, ")"),
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+                                legend.position = "top"))
+
+combined & theme(legend.position = "top")
+```
+
+## Manager Gender
+
+```{r manager_gender}
+# Find the most recent month with >200 total sources
+latest_month <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month)) %>%
+  count(display_month) %>%
+  mutate(display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  filter(n > 200) %>%
+  filter(as.numeric(display_month) == max(as.numeric(display_month))) %>%
+  pull(display_month)
+
+# Calculate manager gender percentages by community for that month
+manager_by_community <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month) & !is.na(manager_gender), display_month == latest_month) %>%
+  mutate(manager_gender = factor(manager_gender, levels = c("Male", "Female", "Mixed"))) %>%
+  count(community, manager_gender, .drop = FALSE) %>%
+  group_by(community) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100) %>%
+  ungroup()
+
+manager_total <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month) & !is.na(manager_gender), display_month == latest_month) %>%
+  mutate(manager_gender = factor(manager_gender, levels = c("Male", "Female", "Mixed"))) %>%
+  count(manager_gender, .drop = FALSE) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         community = "Total")
+
+manager_by_community <- bind_rows(manager_by_community, manager_total) %>%
+  mutate(community = factor(community, levels = c("Total", "Cockle Bay", "Dworzark", "Portee Rokupa")),
+         community_label = paste0(community, " (n=", total, ")"))
+
+manager_by_community <- manager_by_community %>%
+  mutate(community_label = reorder(community_label, as.numeric(community)))
+
+# Define manager gender colors
+manager_colors <- c(
+  "Male" = "lightblue",
+  "Female" = "lightcoral",
+  "Mixed" = "plum"
+)
+
+# Shared theme
+shared_theme <- theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.title = element_blank(),
+        axis.text.x = element_text(hjust = .5, size = 8))
+
+# Total plot
+p_total <- manager_by_community %>%
+  filter(community == "Total") %>%
+  ggplot(aes(x = community_label, y = pct, fill = manager_gender)) +
+  geom_col(position = "stack", width = 0.7) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 3) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = manager_colors) +
+  labs(x = NULL, y = NULL) +
+  shared_theme +
+  theme(legend.position = "none")
+
+# Community plot
+p_community <- manager_by_community %>%
+  filter(community != "Total") %>%
+  ggplot(aes(x = community_label, y = pct, fill = manager_gender)) +
+  geom_col(position = "stack", width = 0.55) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 2.5) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  scale_fill_manual(values = manager_colors) +
+  labs(x = NULL, y = NULL) +
+  shared_theme +
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 8))
+
+# Combine with Total taking half the chart
+combined <- p_total + p_community + 
+  plot_layout(widths = c(1, 1), guides = "collect") +
+  plot_annotation(title = paste0("Water Source Manager Gender (", latest_month, ")"),
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+                                legend.position = "top"))
+
+combined & theme(legend.position = "top")
+```
+
+## Owner Type
+
+```{r owner_type}
+# Calculate owner type percentages by community for latest month
+owner_by_community <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month) & !is.na(owner_type), display_month == latest_month) %>%
+  mutate(owner_type = factor(owner_type, levels = c("Individual", "Household", "Committee", "Organization"))) %>%
+  count(community, owner_type, .drop = FALSE) %>%
+  group_by(community) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100) %>%
+  ungroup()
+
+# Add total
+owner_total <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month) & !is.na(owner_type), display_month == latest_month) %>%
+  mutate(owner_type = factor(owner_type, levels = c("Individual", "Household", "Committee", "Organization"))) %>%
+  count(owner_type, .drop = FALSE) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         community = "Total")
+
+owner_by_community <- bind_rows(owner_by_community, owner_total) %>%
+  mutate(community = factor(community, levels = c("Total", "Cockle Bay", "Dworzark", "Portee Rokupa")),
+         community_label = paste0(community, " (n=", total, ")"))
+
+owner_by_community <- owner_by_community %>%
+  mutate(community_label = reorder(community_label, as.numeric(community)))
+
+# Define owner type colors
+owner_colors <- c(
+  "Individual" = "goldenrod",
+  "Household" = "sienna",
+  "Committee" = "seagreen",
+  "Organization" = "steelblue"
+)
+
+# Shared theme
+shared_theme <- theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.title = element_blank(),
+        axis.text.x = element_text(hjust = .5, size = 8))
+
+# Total plot
+p_total <- owner_by_community %>%
+  filter(community == "Total") %>%
+  ggplot(aes(x = community_label, y = pct, fill = owner_type)) +
+  geom_col(position = "stack", width = 0.7) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 3) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = owner_colors) +
+  labs(x = NULL, y = NULL) +
+  shared_theme +
+  theme(legend.position = "none")
+
+# Community plot
+p_community <- owner_by_community %>%
+  filter(community != "Total") %>%
+  ggplot(aes(x = community_label, y = pct, fill = owner_type)) +
+  geom_col(position = "stack", width = 0.55) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 2.5) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  scale_fill_manual(values = owner_colors) +
+  labs(x = NULL, y = NULL) +
+  shared_theme +
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 8))
+
+# Combine with Total taking half the chart
+combined <- p_total + p_community + 
+  plot_layout(widths = c(1, 1), guides = "collect") +
+  plot_annotation(title = paste0("Water Source Owner Type (", latest_month, ")"),
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+                                legend.position = "top"))
+
+combined & theme(legend.position = "top")
+```
+
+## Source Age
+
+```{r source_age}
+# Calculate source age percentages by community for latest month
+age_by_community <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month) & !is.na(source_age), display_month == latest_month) %>%
+  mutate(source_age = factor(source_age, levels = c("Less than 6 Months", "6 months to one year", "1 to 5 years", "5 to 10", "10 to 20", "20+ years"))) %>%
+  count(community, source_age, .drop = FALSE) %>%
+  group_by(community) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100) %>%
+  ungroup()
+
+# Add total
+age_total <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month) & !is.na(source_age), display_month == latest_month) %>%
+  mutate(source_age = factor(source_age, levels = c("Less than 6 Months", "6 months to one year", "1 to 5 years", "5 to 10", "10 to 20", "20+ years"))) %>%
+  count(source_age, .drop = FALSE) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         community = "Total")
+
+age_by_community <- bind_rows(age_by_community, age_total) %>%
+  mutate(community = factor(community, levels = c("Total", "Cockle Bay", "Dworzark", "Portee Rokupa")),
+         community_label = paste0(community, " (n=", total, ")"))
+
+age_by_community <- age_by_community %>%
+  mutate(community_label = reorder(community_label, as.numeric(community)))
+
+# Define source age colors with grouped gradients
+age_colors <- c(
+  "Less than 6 Months" = "#f5e6d3",
+  "6 months to one year" = "#8b6914",
+  "1 to 5 years" = "#c7e9c0",
+  "5 to 10" = "#41ab5d",
+  "10 to 20" = "#9ecae1",
+  "20+ years" = "#08519c"
+)
+
+# Shared theme
+shared_theme <- theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.title = element_blank(),
+        axis.text.x = element_text(hjust = .5, size = 8))
+
+# Total plot
+p_total <- age_by_community %>%
+  filter(community == "Total") %>%
+  ggplot(aes(x = community_label, y = pct, fill = source_age)) +
+  geom_col(position = "stack", width = 0.7) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 3) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = age_colors) +
+  labs(x = NULL, y = NULL) +
+  shared_theme +
+  theme(legend.position = "none")
+
+# Community plot
+p_community <- age_by_community %>%
+  filter(community != "Total") %>%
+  ggplot(aes(x = community_label, y = pct, fill = source_age)) +
+  geom_col(position = "stack", width = 0.55) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 2.5) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  scale_fill_manual(values = age_colors) +
+  labs(x = NULL, y = NULL) +
+  shared_theme +
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 8))
+
+# Combine with Total taking half the chart
+combined <- p_total + p_community + 
+  plot_layout(widths = c(1, 1), guides = "collect") +
+  plot_annotation(title = paste0("Water Source Age (", latest_month, ")"),
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+                                legend.position = "top"))
+
+combined & theme(legend.position = "top", legend.text = element_text(size = 7)) &
+  guides(fill = guide_legend(nrow = 2, title = NULL))
+```
+
+## Funder
+
+```{r funder}
+# Calculate funder type percentages by community for latest month
+funder_by_community <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month) & !is.na(funder), display_month == latest_month) %>%
+  mutate(funder = factor(funder, levels = c("Household/self", "Community", "FCC", "National Government", "Freetown-based NGO", "International NGO"))) %>%
+  count(community, funder, .drop = FALSE) %>%
+  group_by(community) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100) %>%
+  ungroup()
+
+# Add total
+funder_total <- ws_data %>%
+  filter(!is.na(community) & !is.na(display_month) & !is.na(funder), display_month == latest_month) %>%
+  mutate(funder = factor(funder, levels = c("Household/self", "Community", "FCC", "National Government", "Freetown-based NGO", "International NGO"))) %>%
+  count(funder, .drop = FALSE) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         community = "Total")
+
+funder_by_community <- bind_rows(funder_by_community, funder_total) %>%
+  mutate(community = factor(community, levels = c("Total", "Cockle Bay", "Dworzark", "Portee Rokupa")),
+         community_label = paste0(community, " (n=", total, ")"))
+
+funder_by_community <- funder_by_community %>%
+  mutate(community_label = reorder(community_label, as.numeric(community)))
+
+# Define funder type colors
+funder_colors <- c(
+  "Household/self" = "goldenrod",
+  "Community" = "sienna",
+  "FCC" = "lightgreen",
+  "National Government" = "darkgreen",
+  "Freetown-based NGO" = "steelblue",
+  "International NGO" = "navy"
+)
+
+# Shared theme
+shared_theme <- theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.title = element_blank(),
+        axis.text.x = element_text(hjust = .5, size = 8))
+
+# Total plot
+p_total <- funder_by_community %>%
+  filter(community == "Total") %>%
+  ggplot(aes(x = community_label, y = pct, fill = funder)) +
+  geom_col(position = "stack", width = 0.7) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 3) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = funder_colors) +
+  labs(x = NULL, y = NULL) +
+  shared_theme +
+  theme(legend.position = "none")
+
+# Community plot
+p_community <- funder_by_community %>%
+  filter(community != "Total") %>%
+  ggplot(aes(x = community_label, y = pct, fill = funder)) +
+  geom_col(position = "stack", width = 0.55) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 2.5) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+  scale_fill_manual(values = funder_colors) +
+  labs(x = NULL, y = NULL) +
+  shared_theme +
+  theme(legend.position = "none",
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 8))
+
+# Combine with Total taking half the chart
+combined <- p_total + p_community + 
+  plot_layout(widths = c(1, 1), guides = "collect") +
+  plot_annotation(title = paste0("Water Source Funder (", latest_month, ")"),
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+                                legend.position = "top"))
+
+combined & theme(legend.position = "top", legend.text = element_text(size = 7)) &
+  guides(fill = guide_legend(nrow = 2, title = NULL))
+```
+
+## User Per Day
+
+```{r users_per_day}
+# Define users per day colors
+users_colors <- c(
+  "0" = "black",
+  "1 to 10" = "grey70",
+  "10 to 20" = "#d4a574",
+  "20 to 50" = "#8b6914",
+  "50 to 100" = "#c7e9c0",
+  "100 to 200" = "#a1d99b",
+  "200 to 300" = "#41ab5d",
+  "300 to 500" = "#9ecae1",
+  "500 to 1000" = "#4292c6",
+  "1000+" = "#cb181d"
+)
+
+ws_data %>%
+  filter(!is.na(display_month), !is.na(users_per_day)) %>%
+  mutate(display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  count(display_month, users_per_day, .drop = FALSE) %>%
+  group_by(display_month) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         month_label = paste0(display_month, "\n(n=", total, ")")) %>%
+  ungroup() %>%
+  mutate(month_label = reorder(month_label, as.numeric(display_month))) %>%
+  filter(n > 0) %>%
+  ggplot(aes(x = month_label, y = pct, fill = users_per_day)) +
+  geom_col(position = "stack", width = 0.6) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 2.5) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = users_colors) +
+  labs(x = NULL, y = NULL, title = "Water Source Users Per Day") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        legend.title = element_blank()) +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
+```
+
+## Access Rights
+
+```{r access_rights}
+access_colors <- c(
+  "Household" = "#8c510a",
+  "Close friends and family" = "#d8b365",
+  "Community" = "#5ab4ac",
+  "Anybody" = "#01665e"
+)
+
+ws_data %>%
+  filter(!is.na(display_month), !is.na(access_rights)) %>%
+  mutate(access_rights = factor(access_rights, levels = c("Household", "Close friends and family", "Community", "Anybody")),
+         display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  count(display_month, access_rights, .drop = FALSE) %>%
+  group_by(display_month) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         month_label = paste0(display_month, "\n(n=", total, ")")) %>%
+  ungroup() %>%
+  mutate(month_label = reorder(month_label, as.numeric(display_month))) %>%
+  filter(n > 0) %>%
+  ggplot(aes(x = month_label, y = pct, fill = access_rights)) +
+  geom_col(position = "stack", width = 0.6) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 2.5) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = access_colors) +
+  labs(x = NULL, y = NULL, title = "Water Source Access Rights") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        legend.title = element_blank()) +
+  guides(fill = guide_legend(nrow = 1))
+```
+
+## Price Per Jerry Can
+
+```{r price_per_jerrycan}
+# Dynamically create colors based on unique values
+unique_prices <- ws_data %>%
+  filter(!is.na(price_per_jerrycan)) %>%
+  pull(price_per_jerrycan) %>%
+  unique() %>%
+  sort()
+
+assign_price_color <- function(prices) {
+  colors <- sapply(prices, function(p) {
+    if (p == 0) {
+      "grey70"
+    } else if (p <= 1) {
+      low_prices <- prices[prices > 0 & prices <= 1]
+      green_palette <- colorRampPalette(c("#c7e9c0", "#006d2c"))(length(low_prices))
+      green_palette[which(low_prices == p)]
+    } else {
+      high_prices <- prices[prices > 1]
+      red_palette <- colorRampPalette(c("#fcbba1", "#cb181d"))(length(high_prices))
+      red_palette[which(high_prices == p)]
+    }
+  })
+  names(colors) <- prices
+  return(colors)
+}
+
+price_colors <- assign_price_color(unique_prices)
+names(price_colors) <- as.character(unique_prices)
+price_colors["0"] <- "grey70"
+
+ws_data %>%
+  filter(!is.na(display_month), !is.na(price_per_jerrycan)) %>%
+  mutate(display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  count(display_month, price_per_jerrycan, .drop = FALSE) %>%
+  group_by(display_month) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         month_label = paste0(display_month, "\n(n=", total, ")")) %>%
+  ungroup() %>%
+  mutate(month_label = reorder(month_label, as.numeric(display_month)),
+         price_per_jerrycan = factor(price_per_jerrycan, levels = unique_prices)) %>%
+  filter(n > 0) %>%
+  ggplot(aes(x = month_label, y = pct, fill = factor(price_per_jerrycan))) +
+  geom_col(position = position_stack(reverse = TRUE), width = 0.6) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5, reverse = TRUE), size = 2.5) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = price_colors) +
+  labs(x = NULL, y = NULL, fill = "NLe Per Jerrycan",
+       title = "Water Source Price Per Jerrycan") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
+```
+
+## Monthly Fee
+
+```{r price_per_month}
+price_month_colors <- c(
+  "Yes" = "#41ab5d",
+  "No" = "grey70"
+)
+
+ws_data %>%
+  filter(!is.na(display_month)) %>%
+  mutate(has_monthly_price = factor(
+    ifelse(!is.na(price_per_month) & price_per_month > 0, "Yes", "No"),
+    levels = c("Yes", "No")),
+    display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  count(display_month, has_monthly_price, .drop = FALSE) %>%
+  group_by(display_month) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         month_label = paste0(display_month, "\n(n=", total, ")")) %>%
+  ungroup() %>%
+  mutate(month_label = reorder(month_label, as.numeric(display_month))) %>%
+  filter(n > 0) %>%
+  ggplot(aes(x = month_label, y = pct, fill = has_monthly_price)) +
+  geom_col(position = position_stack(reverse = TRUE), width = 0.6) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5, reverse = TRUE), size = 2.5) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = price_month_colors) +
+  labs(x = NULL, y = NULL, title = "Water Sources with Monthly Price") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        legend.title = element_blank())
+```
+
+## Price Change
+
+```{r price_change}
+price_change_colors <- c(
+  "Yes" = "#cb181d",
+  "No" = "#41ab5d"
+)
+
+ws_data %>%
+  filter(!is.na(display_month), !is.na(price_change)) %>%
+  mutate(price_change = factor(price_change, levels = c("Yes", "No")),
+         display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  count(display_month, price_change, .drop = FALSE) %>%
+  group_by(display_month) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         month_label = paste0(display_month, "\n(n=", total, ")")) %>%
+  ungroup() %>%
+  mutate(month_label = reorder(month_label, as.numeric(display_month))) %>%
+  filter(n > 0) %>%
+  ggplot(aes(x = month_label, y = pct, fill = price_change)) +
+  geom_col(position = position_stack(reverse = TRUE), width = 0.6) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5, reverse = TRUE), size = 2.5) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = price_change_colors) +
+  labs(x = NULL, y = NULL, title = "Water Source Price Change") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        legend.title = element_blank())
+```
+
+## Days Per Week
+
+```{r days_per_week}
+days_colors <- c(
+  "7 days per week" = "#08519c",
+  "4-6 days per week" = "#6baed6",
+  "2-3 days per week" = "#fdae61",
+  "1 day per week" = "#f46d43",
+  "Less than weekly" = "#d73027"
+)
+
+ws_data %>%
+  filter(!is.na(display_month), !is.na(days_per_week)) %>%
+  mutate(days_per_week = factor(days_per_week, levels = c("7 days per week", "4-6 days per week", "2-3 days per week", "1 day per week", "Less than weekly")),
+         display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  count(display_month, days_per_week, .drop = FALSE) %>%
+  group_by(display_month) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         month_label = paste0(display_month, "\n(n=", total, ")")) %>%
+  ungroup() %>%
+  mutate(month_label = reorder(month_label, as.numeric(display_month))) %>%
+  filter(n > 0) %>%
+  ggplot(aes(x = month_label, y = pct, fill = days_per_week)) +
+  geom_col(position = position_stack(reverse = TRUE), width = 0.6) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5, reverse = TRUE), size = 2.5) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = days_colors) +
+  labs(x = NULL, y = NULL, title = "Water Source Availability (Days Per Week)") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        legend.title = element_blank()) +
+  guides(fill = guide_legend(nrow = 1))
+```
+
+## Daily Schedule
+
+```{r daily_schedule}
+schedule_colors <- c(
+  "All day" = "#08519c",
+  "Twice a day" = "#6baed6",
+  "Three times a day" = "#f46d43",
+  "Randomly throughout day" = "#d73027"
+)
+
+ws_data %>%
+  filter(!is.na(display_month), !is.na(daily_schedule)) %>%
+  mutate(daily_schedule = factor(daily_schedule, levels = c("All day", "Twice a day", "Three times a day", "Randomly throughout day")),
+         display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  count(display_month, daily_schedule, .drop = FALSE) %>%
+  group_by(display_month) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         month_label = paste0(display_month, "\n(n=", total, ")")) %>%
+  ungroup() %>%
+  mutate(month_label = reorder(month_label, as.numeric(display_month))) %>%
+  filter(n > 0) %>%
+  ggplot(aes(x = month_label, y = pct, fill = daily_schedule)) +
+  geom_col(position = position_stack(reverse = TRUE), width = 0.6) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5, reverse = TRUE), size = 2.5) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = schedule_colors) +
+  labs(x = NULL, y = NULL, title = "Water Source Daily Schedule") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        legend.title = element_blank()) +
+  guides(fill = guide_legend(nrow = 1))
+```
+
+## Opening time
+
+```{r opening_time}
+opening_colors <- c(
+  "1am" = "#67000D",
+  "2am" = "#A50F15",
+  "3am" = "#CB181D",
+  "4am" = "#EF3B2C",
+  "5am" = "#FB6A4A",
+  "6am" = "#C6DBEF",
+  "7am" = "#9ECAE1",
+  "8am" = "#6BAED6",
+  "9am" = "#4292C6",
+  "10am" = "#2171B5",
+  "11am" = "#08519C",
+  "Afternoon" = "grey80",
+  "Evening" = "grey50"
+)
+
+ws_data %>%
+  filter(!is.na(display_month), !is.na(opening_time)) %>%
+  mutate(opening_time = factor(opening_time, levels = c("1am", "2am", "3am", "4am", "5am", "6am", "7am", "8am", "9am", "10am", "11am", "Afternoon", "Evening")),
+         display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  count(display_month, opening_time, .drop = FALSE) %>%
+  group_by(display_month) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         month_label = paste0(display_month, "\n(n=", total, ")")) %>%
+  ungroup() %>%
+  mutate(month_label = reorder(month_label, as.numeric(display_month))) %>%
+  filter(n > 0) %>%
+  ggplot(aes(x = month_label, y = pct, fill = opening_time)) +
+  geom_col(position = position_stack(reverse = TRUE), width = 0.6) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5, reverse = TRUE), size = 2.5) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = opening_colors) +
+  labs(x = NULL, y = NULL, fill = NULL, title = "Water Source Opening Time") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
+```
+
+## Is Potable
+
+```{r potable}
+potable_colors <- c(
+  "Yes" = "#08519c",
+  "No" = "#cb181d",
+  "Unknown" = "grey70"
+)
+
+ws_data %>%
+  filter(!is.na(display_month), !is.na(is_potable)) %>%
+  mutate(is_potable = factor(is_potable, levels = c("Yes", "No", "Unknown")),
+         display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  count(display_month, is_potable, .drop = FALSE) %>%
+  group_by(display_month) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         month_label = paste0(display_month, "\n(n=", total, ")")) %>%
+  ungroup() %>%
+  mutate(month_label = reorder(month_label, as.numeric(display_month))) %>%
+  filter(n > 0) %>%
+  ggplot(aes(x = month_label, y = pct, fill = is_potable)) +
+  geom_col(position = position_stack(reverse = TRUE), width = 0.6) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5, reverse = TRUE), size = 2.5) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = potable_colors) +
+  labs(x = NULL, y = NULL, title = "Water Source Potability") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        legend.title = element_blank())
+```
+
+## Treatment Frequency
+
+```{r treatment_frequency}
+treatment_colors <- c(
+  "Daily" = "#08519c",
+  "Weekly" = "#6baed6",
+  "Monthly" = "#fdae61",
+  "Less than Monthly" = "#f46d43",
+  "Never" = "#d73027"
+)
+
+ws_data %>%
+  filter(!is.na(display_month), !is.na(treatment_frequency)) %>%
+  mutate(treatment_frequency = factor(treatment_frequency, levels = c("Daily", "Weekly", "Monthly", "Less than Monthly", "Never")),
+         display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  count(display_month, treatment_frequency, .drop = FALSE) %>%
+  group_by(display_month) %>%
+  mutate(total = sum(n),
+         pct = n / total * 100,
+         month_label = paste0(display_month, "\n(n=", total, ")")) %>%
+  ungroup() %>%
+  mutate(month_label = reorder(month_label, as.numeric(display_month))) %>%
+  filter(n > 0) %>%
+  ggplot(aes(x = month_label, y = pct, fill = treatment_frequency)) +
+  geom_col(position = position_stack(reverse = TRUE), width = 0.6) +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5, reverse = TRUE), size = 2.5) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = treatment_colors) +
+  labs(x = NULL, y = NULL, title = "Water Source Treatment Frequency") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        legend.title = element_blank()) +
+  guides(fill = guide_legend(nrow = 1))
+```
+
+## Percent Women Gatherers
+
+```{r women_gatherers, fig.width=10, fig.height=12}
+# Calculate average for Total by month
+total_avg <- ws_data %>%
+  filter(!is.na(display_month) & !is.na(percent_women_gatherers)) %>%
+  group_by(display_month) %>%
+  summarise(avg_women = mean(percent_women_gatherers, na.rm = TRUE)) %>%
+  mutate(display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep")))
+
+ws_data %>%
+  filter(!is.na(community) & !is.na(display_month) & !is.na(percent_women_gatherers)) %>%
+  select(display_month, community, percent_women_gatherers) %>%
+  bind_rows(
+    ws_data %>%
+      filter(!is.na(community) & !is.na(display_month) & !is.na(percent_women_gatherers)) %>%
+      mutate(community = "Total") %>%
+      select(display_month, community, percent_women_gatherers)
+  ) %>%
+  mutate(community = factor(community, levels = c("Total", "Cockle Bay", "Dworzark", "Portee Rokupa")),
+         display_month = factor(display_month, levels = c("Nov", "Jan", "Mar", "May", "Jul", "Sep"))) %>%
+  ggplot(aes(x = percent_women_gatherers, color = community, fill = community, alpha = community)) +
+  geom_density(linewidth = 1) +
+  geom_vline(data = total_avg, aes(xintercept = avg_women), color = "red", linewidth = 1, linetype = "dashed") +
+  scale_color_manual(values = c("Cockle Bay" = "forestgreen", "Dworzark" = "sandybrown", 
+                                "Portee Rokupa" = "steelblue", "Total" = "black")) +
+  scale_fill_manual(values = c("Cockle Bay" = "forestgreen", "Dworzark" = "sandybrown", 
+                               "Portee Rokupa" = "steelblue", "Total" = "black")) +
+  scale_alpha_manual(values = c("Cockle Bay" = 0.3, "Dworzark" = 0.3, 
+                                "Portee Rokupa" = 0.3, "Total" = 1)) +
+  scale_x_continuous(breaks = seq(0, 100, 25)) +
+  scale_y_continuous(labels = function(x) paste0(round(x * 100, 0), "%")) +
+  coord_cartesian(xlim = c(0, 100)) +
+  facet_rep_wrap(~display_month, ncol = 1, drop = FALSE, repeat.tick.labels = TRUE) +
+  labs(x = "Percent Women Gatherers", y = "Percentage of Water Sources", color = NULL, fill = NULL, alpha = NULL,
+       title = "Distribution of Percent Women Gatherers by Month") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        panel.grid.minor = element_blank(),
+        strip.text = element_text(face = "bold")) +
+  guides(alpha = "none")
+```
+
+## Qualitative Response Counts
+```{r qual_responses}
+qual_vars <- c("responsibility", "free_or_pay", "difficulties", "relationships", 
+               "community_influence", "fcc_influence", "community_help", "fcc_help", 
+               "recent_issues", "danger_gatherers", "danger_providers", 
+               "improvement_suggestions", "new_sources_impact", "introduce_sources", 
+               "misunderstandings")
+
+# Get total surveys per month
+total_surveys_month <- ws_data %>%
+  filter(!is.na(display_month)) %>%
+  count(display_month, name = "total_surveys")
+
+# Calculate counts and percentages across all communities
+qual_total <- ws_data %>%
+  filter(!is.na(display_month)) %>%
+  select(display_month, all_of(qual_vars)) %>%
+  pivot_longer(cols = all_of(qual_vars), names_to = "variable", values_to = "response") %>%
+  filter(!is.na(response) & response != "") %>%
+  count(variable, display_month) %>%
+  left_join(total_surveys_month, by = "display_month") %>%
+  mutate(pct = round(n / total_surveys * 100, 1),
+         count_pct = paste0(n, " (", pct, "%)")) %>%
+  select(variable, display_month, count_pct) %>%
+  pivot_wider(names_from = display_month, values_from = count_pct, values_fill = "0 (0%)") %>%
+  rename(Variable = variable)
+
+qual_total %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+

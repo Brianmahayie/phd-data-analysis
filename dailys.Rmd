@@ -1,0 +1,633 @@
+---
+title: "Survey Daily Report"
+date: "`r format(Sys.time(), '%B %d, %Y %H:%M')`"
+output: 
+  html_document:
+    theme: flatly
+    toc: true
+    toc_float:
+      collapsed: false
+    toc_depth: 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(knitr)
+library(kableExtra)
+library(ggspatial)
+library(gridExtra)
+
+source("hh_cleanup.R")
+source("ws_cleanup.R")
+```
+
+```{r select_columns}
+hh_daily <- hh_data %>%
+  select(uuid, community, zone, hhid, surveyor_name, resp_surveyor,
+         survey_date, survey_month,
+         name, number, gps_location)
+
+ws_daily <- ws_data %>%
+  select(uuid, wsid, community, zone, surveyor_name,
+         survey_date, display_month, gps_location,
+         respondent_name, water_source_type)
+```
+
+```{r subsets}
+hh_current <- hh_daily %>%
+  filter(survey_date >= floor_date(Sys.Date(), "month"))
+
+ws_current <- ws_daily %>%
+  filter(survey_date >= floor_date(Sys.Date(), "month"))
+```
+
+```{r targets}
+surveyor_targets <- hh_daily %>%
+  filter(!is.na(hhid)) %>%
+  distinct(hhid, resp_surveyor) %>%
+  count(resp_surveyor, name = "target") %>%
+  filter(!resp_surveyor %in% c("Unknown"))
+
+current_month_hhids <- hh_current %>%
+  filter(!is.na(hhid)) %>%
+  distinct(hhid)
+
+surveyor_completed <- hh_daily %>%
+  filter(!is.na(hhid)) %>%
+  distinct(hhid, resp_surveyor) %>%
+  filter(hhid %in% current_month_hhids$hhid) %>%
+  count(resp_surveyor, name = "completed")
+
+surveyor_progress <- surveyor_targets %>%
+  left_join(surveyor_completed, by = "resp_surveyor") %>%
+  replace_na(list(completed = 0)) %>%
+  mutate(remaining = target - completed)
+```
+
+**Total**: `r sum(surveyor_progress$completed)`/`r sum(surveyor_progress$target)` surveys completed, **`r sum(surveyor_progress$remaining)`** remaining
+
+**Abdulai K**: `r surveyor_progress$completed[surveyor_progress$resp_surveyor == "Abdulai K"]`/`r surveyor_progress$target[surveyor_progress$resp_surveyor == "Abdulai K"]` surveys completed, **`r surveyor_progress$remaining[surveyor_progress$resp_surveyor == "Abdulai K"]`** remaining
+
+**Jamiatu**: `r surveyor_progress$completed[surveyor_progress$resp_surveyor == "Jamiatu"]`/`r surveyor_progress$target[surveyor_progress$resp_surveyor == "Jamiatu"]` surveys completed, **`r surveyor_progress$remaining[surveyor_progress$resp_surveyor == "Jamiatu"]`** remaining
+
+**Boboieh**: `r surveyor_progress$completed[surveyor_progress$resp_surveyor == "Boboieh"]`/`r surveyor_progress$target[surveyor_progress$resp_surveyor == "Boboieh"]` surveys completed, **`r surveyor_progress$remaining[surveyor_progress$resp_surveyor == "Boboieh"]`** remaining
+
+**Musa**: `r surveyor_progress$completed[surveyor_progress$resp_surveyor == "Musa"]`/`r surveyor_progress$target[surveyor_progress$resp_surveyor == "Musa"]` surveys completed, **`r surveyor_progress$remaining[surveyor_progress$resp_surveyor == "Musa"]`** remaining
+
+# Recent Performance
+
+```{r recent-performance}
+all_dates <- sort(unique(c(hh_current$survey_date, ws_current$survey_date)), decreasing = TRUE)
+
+hh_counts <- hh_current %>%
+  count(surveyor_name, survey_date, name = "n_hh")
+
+ws_counts <- ws_current %>%
+  count(surveyor_name, survey_date, name = "n_source")
+
+combined_raw <- hh_counts %>%
+  full_join(ws_counts, by = c("surveyor_name", "survey_date")) %>%
+  replace_na(list(n_hh = 0, n_source = 0)) %>%
+  mutate(n_total = n_hh + n_source)
+
+week_totals <- hh_current %>%
+  filter(survey_date >= Sys.Date() - 7) %>%
+  count(surveyor_name, name = "hh_week") %>%
+  full_join(
+    ws_current %>%
+      filter(survey_date >= Sys.Date() - 7) %>%
+      count(surveyor_name, name = "source_week"),
+    by = "surveyor_name"
+  ) %>%
+  replace_na(list(hh_week = 0, source_week = 0))
+
+month_totals <- hh_current %>%
+  filter(survey_date >= Sys.Date() - 30) %>%
+  count(surveyor_name, name = "hh_month") %>%
+  full_join(
+    ws_current %>%
+      filter(survey_date >= Sys.Date() - 30) %>%
+      count(surveyor_name, name = "source_month"),
+    by = "surveyor_name"
+  ) %>%
+  replace_na(list(hh_month = 0, source_month = 0))
+
+combined <- combined_raw %>%
+  complete(surveyor_name, survey_date = all_dates, fill = list(n_hh = 0, n_source = 0, n_total = 0)) %>%
+  left_join(week_totals, by = "surveyor_name") %>%
+  left_join(month_totals, by = "surveyor_name") %>%
+  replace_na(list(hh_week = 0, source_week = 0, hh_month = 0, source_month = 0)) %>%
+  arrange(surveyor_name) %>%
+  filter(rowSums(across(where(is.numeric)), na.rm = TRUE) > 0)
+
+# Community subtotal helper
+make_subtotal <- function(hh, ws, comm = NULL, label) {
+  hh_f <- if (!is.null(comm)) filter(hh, community == comm) else hh
+  ws_f <- if (!is.null(comm)) filter(ws, community == comm) else ws
+  
+  daily <- hh_f %>%
+    count(survey_date, name = "n_hh") %>%
+    full_join(ws_f %>% count(survey_date, name = "n_source"), by = "survey_date") %>%
+    replace_na(list(n_hh = 0, n_source = 0))
+  
+  daily %>%
+    mutate(
+      n_total = n_hh + n_source,
+      count_text = paste0("(", n_hh, " hh / ", n_source, " ws)"),
+      surveyor_name = label,
+      hh_week = nrow(filter(hh_f, survey_date >= Sys.Date() - 7)),
+      source_week = nrow(filter(ws_f, survey_date >= Sys.Date() - 7)),
+      hh_month = nrow(filter(hh_f, survey_date >= Sys.Date() - 30)),
+      source_month = nrow(filter(ws_f, survey_date >= Sys.Date() - 30))
+    ) %>%
+    select(surveyor_name, survey_date, count_text, n_total, hh_week, source_week, hh_month, source_month)
+}
+
+grand_total <- make_subtotal(hh_current, ws_current, NULL, "GRAND TOTAL")
+portee_subtotal <- make_subtotal(hh_current, ws_current, "Portee Rokupa", "Portee Rokupa Total")
+dworzark_subtotal <- make_subtotal(hh_current, ws_current, "Dworzark", "Dworzark Total")
+cockle_subtotal <- make_subtotal(hh_current, ws_current, "Cockle Bay", "Cockle Bay Total")
+
+# Color function
+apply_color <- function(text, n_total, date) {
+  if (is.na(n_total) || n_total == 0) return("")
+  is_weekend <- weekdays(date) %in% c("Saturday", "Sunday")
+  if (is_weekend) {
+    if (n_total > 10) paste0('<span style="background-color: #ccffcc; display: block;">', text, '</span>')
+    else text
+  } else {
+    case_when(
+      n_total < 8 ~ paste0('<span style="background-color: #ffcccc; display: block;">', text, '</span>'),
+      n_total > 10 ~ paste0('<span style="background-color: #ccffcc; display: block;">', text, '</span>'),
+      TRUE ~ text
+    )
+  }
+}
+
+dates_to_show <- all_dates[1:min(4, length(all_dates))]
+
+combined_final <- combined %>%
+  mutate(count_text = ifelse(n_total > 0, paste0("(", n_hh, " hh / ", n_source, " ws)"), "")) %>%
+  select(surveyor_name, survey_date, count_text, n_total, hh_week, source_week, hh_month, source_month) %>%
+  bind_rows(grand_total, portee_subtotal, dworzark_subtotal, cockle_subtotal) %>%
+  mutate(
+    count_text = mapply(apply_color, count_text, n_total, survey_date),
+    totals = paste0(
+      "Week: ", hh_week, " hh / ", source_week, " ws<br>",
+      "Month: ", hh_month, " hh / ", source_month, " ws"
+    ),
+    surveyor_name = factor(
+      surveyor_name,
+      levels = c(
+        "GRAND TOTAL",
+        "Abdulai K", "Abdulai B", "Portee Rokupa Total",
+        "Jamiatu", "Boboieh", "Sinneh", "Joseph", "Moses", "Dworzark Total",
+        "Musa", "Joana", "Cockle Bay Total", "Other"
+      )
+    )
+  ) %>%
+  arrange(surveyor_name) %>%
+  select(surveyor_name, totals, survey_date, count_text) %>%
+  pivot_wider(names_from = survey_date, values_from = count_text, values_fill = "") %>%
+  select(surveyor_name, totals, all_of(as.character(dates_to_show)))
+
+sunday_cols <- which(weekdays(as.Date(dates_to_show)) == "Sunday") + 2
+
+tbl <- combined_final %>%
+  kable(
+    col.names = c("Surveyor", "Totals", format(dates_to_show, "%a %b %d")),
+    escape = FALSE, format = "html",
+    align = c("l", "c", rep("c", length(dates_to_show)))
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover"),
+    full_width = FALSE, position = "left", fixed_thead = TRUE
+  ) %>%
+  row_spec(
+    which(combined_final$surveyor_name %in%
+            c("GRAND TOTAL", "Portee Rokupa Total", "Dworzark Total", "Cockle Bay Total")),
+    bold = TRUE, background = "#f0f0f0",
+    extra_css = "white-space: nowrap; vertical-align: middle;"
+  ) %>%
+  row_spec(0, extra_css = "white-space: nowrap;") %>%
+  column_spec(2:ncol(combined_final), extra_css = "white-space: nowrap; vertical-align: middle;") %>%
+  column_spec(2, extra_css = "border-right: 2px solid black; white-space: nowrap; vertical-align: middle;")
+
+for (col in sunday_cols) {
+  tbl <- tbl %>% column_spec(col, extra_css = "border-left: 2px solid black; white-space: nowrap; vertical-align: middle;")
+}
+
+tbl
+```
+
+# Mapping
+```{r map_setup}
+# Shapefiles already loaded from cleanups - create 4326 versions for display
+cockle_4326 <- st_transform(cockle_shapefile, 4326)
+dworzark_4326 <- st_transform(dworzark_shapefile, 4326)
+portee_4326 <- st_transform(portee_shapefile, 4326)
+
+buffer_distances <- c("Portee Rokupa" = 100, "Dworzark" = 100, "Cockle Bay" = 200)
+```
+
+```{r map_function}
+surveyor_map <- function(selected_surveyor) {
+  current_month <- month(Sys.Date())
+  current_year <- year(Sys.Date())
+  include_water_sources <- current_month %in% c(11, 1, 3, 5, 7, 9)
+  
+  # Get this surveyor's target HHIDs
+  surveyor_hhids <- hh_daily %>%
+    filter(!is.na(hhid), resp_surveyor == selected_surveyor) %>%
+    distinct(hhid) %>%
+    pull(hhid)
+  
+  # Get communities this surveyor works in
+  surveyor_communities <- hh_daily %>%
+    filter(hhid %in% surveyor_hhids) %>%
+    pull(community) %>%
+    unique()
+  
+  # Collect shapefiles for relevant communities
+  shapefiles_list <- list()
+  if ("Cockle Bay" %in% surveyor_communities) shapefiles_list$cockle <- cockle_4326
+  if ("Portee Rokupa" %in% surveyor_communities) shapefiles_list$portee <- portee_4326
+  if ("Dworzark" %in% surveyor_communities) shapefiles_list$dworzark <- dworzark_4326
+  
+  # Helper: get UTM shapefile by community name
+  get_utm <- function(comm) {
+    switch(as.character(comm),
+           "Cockle Bay" = cockle_shapefile_utm,
+           "Portee Rokupa" = portee_shapefile_utm,
+           "Dworzark" = dworzark_shapefile_utm)
+  }
+  
+  # Helper: filter sf points within buffer distance of their community shapefile
+  filter_within_buffer <- function(sf_data) {
+    if (nrow(sf_data) == 0) return(sf_data)
+    sf_utm <- st_transform(sf_data, crs = 32628)
+    keep <- rep(FALSE, nrow(sf_utm))
+    for (i in seq_len(nrow(sf_utm))) {
+      comm <- as.character(sf_utm$community[i])
+      utm_shp <- get_utm(comm)
+      if (!is.null(utm_shp)) {
+        dist <- as.numeric(st_distance(sf_utm[i, ], utm_shp))
+        keep[i] <- dist <= buffer_distances[comm]
+      }
+    }
+    sf_data[keep, ]
+  }
+  
+  # --- HOUSEHOLDS ---
+  surveyor_hh_current <- hh_daily %>%
+    filter(hhid %in% surveyor_hhids,
+           month(survey_date) == current_month,
+           year(survey_date) == current_year,
+           !is.na(gps_location)) %>%
+    separate(gps_location, into = c("latitude", "longitude", "altitude", "accuracy"),
+             sep = " ", remove = FALSE, convert = TRUE) %>%
+    filter(!is.na(latitude), !is.na(longitude)) %>%
+    st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+  
+  surveyor_hh_current <- filter_within_buffer(surveyor_hh_current) %>%
+    mutate(
+      is_yesterday = survey_date == Sys.Date() - 1,
+      category = ifelse(is_yesterday, "HH Yesterday", "HHs Completed")
+    )
+  
+  current_hhids <- unique(surveyor_hh_current$hhid)
+  
+  surveyor_hh_unmapped <- hh_daily %>%
+    filter(hhid %in% surveyor_hhids,
+           !hhid %in% current_hhids,
+           !is.na(gps_location)) %>%
+    group_by(hhid) %>%
+    arrange(desc(survey_date)) %>%
+    slice(1) %>%
+    ungroup() %>%
+    separate(gps_location, into = c("latitude", "longitude", "altitude", "accuracy"),
+             sep = " ", remove = FALSE, convert = TRUE) %>%
+    filter(!is.na(latitude), !is.na(longitude)) %>%
+    st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+  
+  surveyor_hh_unmapped <- filter_within_buffer(surveyor_hh_unmapped) %>%
+    mutate(category = "HH To Do")
+  
+  # --- WATER SOURCES ---
+  if (include_water_sources) {
+    surveyor_ws_current <- ws_daily %>%
+      filter(community %in% surveyor_communities,
+             month(survey_date) == current_month,
+             year(survey_date) == current_year,
+             !is.na(gps_location)) %>%
+      separate(gps_location, into = c("latitude", "longitude", "altitude", "accuracy"),
+               sep = " ", remove = FALSE, convert = TRUE) %>%
+      filter(!is.na(latitude), !is.na(longitude)) %>%
+      st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+    
+    surveyor_ws_current <- filter_within_buffer(surveyor_ws_current) %>%
+      mutate(
+        is_yesterday = survey_date == Sys.Date() - 1,
+        category = ifelse(is_yesterday, "WS Yesterday", "WSs Completed")
+      )
+    
+    current_wsids <- unique(surveyor_ws_current$wsid)
+    
+    surveyor_ws_unmapped <- ws_daily %>%
+      filter(community %in% surveyor_communities,
+             !wsid %in% current_wsids,
+             !is.na(gps_location)) %>%
+      group_by(wsid) %>%
+      arrange(desc(survey_date)) %>%
+      slice(1) %>%
+      ungroup() %>%
+      separate(gps_location, into = c("latitude", "longitude", "altitude", "accuracy"),
+               sep = " ", remove = FALSE, convert = TRUE) %>%
+      filter(!is.na(latitude), !is.na(longitude)) %>%
+      st_as_sf(coords = c("longitude", "latitude"), crs = 4326)
+    
+    surveyor_ws_unmapped <- filter_within_buffer(surveyor_ws_unmapped) %>%
+      mutate(category = "WS To Do")
+  }
+  
+  # --- COUNTS & LABELS ---
+  if (include_water_sources) {
+    counts <- c(
+      "WS Yesterday" = nrow(surveyor_ws_current %>% filter(category == "WS Yesterday")),
+      "WSs Completed" = nrow(surveyor_ws_current %>% filter(category == "WSs Completed")),
+      "WS To Do" = nrow(surveyor_ws_unmapped),
+      "HH Yesterday" = nrow(surveyor_hh_current %>% filter(category == "HH Yesterday")),
+      "HHs Completed" = nrow(surveyor_hh_current %>% filter(category == "HHs Completed")),
+      "HH To Do" = nrow(surveyor_hh_unmapped)
+    )
+    ws_completed <- counts["WS Yesterday"] + counts["WSs Completed"]
+    ws_total <- ws_completed + counts["WS To Do"]
+  } else {
+    counts <- c(
+      "HH Yesterday" = nrow(surveyor_hh_current %>% filter(category == "HH Yesterday")),
+      "HHs Completed" = nrow(surveyor_hh_current %>% filter(category == "HHs Completed")),
+      "HH To Do" = nrow(surveyor_hh_unmapped)
+    )
+  }
+  
+  hh_completed <- counts["HH Yesterday"] + counts["HHs Completed"]
+  hh_total <- hh_completed + counts["HH To Do"]
+  
+  if (include_water_sources) {
+    subtitle_text <- paste0(selected_surveyor, " - HH = ", hh_completed, "/", hh_total,
+                            ", WS = ", ws_completed, "/", ws_total)
+  } else {
+    subtitle_text <- paste0(selected_surveyor, " - HH = ", hh_completed, "/", hh_total)
+  }
+  
+  if (include_water_sources) {
+    category_labels <- c(
+      "WS Yesterday" = paste0("WS Yesterday (", counts["WS Yesterday"], ")"),
+      "WSs Completed" = paste0("WSs Completed (", counts["WSs Completed"], ")"),
+      "WS To Do" = paste0("WS To Do (", counts["WS To Do"], ")"),
+      "HH Yesterday" = paste0("HH Yesterday (", counts["HH Yesterday"], ")"),
+      "HHs Completed" = paste0("HHs Completed (", counts["HHs Completed"], ")"),
+      "HH To Do" = paste0("HH To Do (", counts["HH To Do"], ")")
+    )
+    category_colors <- c(
+      "WS Yesterday" = "#00FF00", "WSs Completed" = "#808080", "WS To Do" = "#FF7F00",
+      "HH Yesterday" = "#00FF00", "HHs Completed" = "#808080", "HH To Do" = "#FF7F00"
+    )
+    category_shapes <- c(
+      "WS Yesterday" = 24, "WSs Completed" = 24, "WS To Do" = 24,
+      "HH Yesterday" = 21, "HHs Completed" = 21, "HH To Do" = 21
+    )
+  } else {
+    category_labels <- c(
+      "HH Yesterday" = paste0("HH Yesterday (", counts["HH Yesterday"], ")"),
+      "HHs Completed" = paste0("HHs Completed (", counts["HHs Completed"], ")"),
+      "HH To Do" = paste0("HH To Do (", counts["HH To Do"], ")")
+    )
+    category_colors <- c(
+      "HH Yesterday" = "#00FF00", "HHs Completed" = "#808080", "HH To Do" = "#FF7F00"
+    )
+    category_shapes <- c(
+      "HH Yesterday" = 21, "HHs Completed" = 21, "HH To Do" = 21
+    )
+  }
+  
+  # --- BUILD MAP ---
+  p <- ggplot() +
+    annotation_map_tile(type = "osm", zoomin = 0, progress = "none")
+  
+  for (shapefile in shapefiles_list) {
+    p <- p + geom_sf(data = shapefile, fill = NA, color = "black", linewidth = 1)
+  }
+  
+  if (include_water_sources) {
+    if (nrow(surveyor_ws_current) > 0)
+      p <- p + geom_sf(data = surveyor_ws_current, aes(fill = category, shape = category),
+                        color = "black", size = 3, stroke = 1)
+    if (nrow(surveyor_ws_unmapped) > 0)
+      p <- p + geom_sf(data = surveyor_ws_unmapped, aes(fill = category, shape = category),
+                        color = "black", size = 1.5, stroke = 0.5)
+  }
+  
+  if (nrow(surveyor_hh_current) > 0)
+    p <- p + geom_sf(data = surveyor_hh_current, aes(fill = category, shape = category),
+                      color = "black", size = 3, stroke = 1)
+  if (nrow(surveyor_hh_unmapped) > 0)
+    p <- p + geom_sf(data = surveyor_hh_unmapped, aes(fill = category, shape = category),
+                      color = "black", size = 1.5, stroke = 0.5)
+  
+  p <- p +
+    scale_fill_manual(values = category_colors, labels = category_labels) +
+    scale_shape_manual(values = category_shapes, labels = category_labels) +
+    labs(subtitle = subtitle_text, fill = NULL, shape = NULL) +
+    theme_minimal() +
+    theme(axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          axis.title = element_blank(),
+          legend.position = "top") +
+    guides(fill = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(size = 3)),
+           shape = guide_legend(nrow = 2, byrow = TRUE, override.aes = list(size = 3)))
+  
+  p
+}
+```
+
+## Abdulai K
+```{r map-abdulai-k, fig.width=5, fig.height=10}
+surveyor_map("Abdulai K")
+```
+
+## Jamiatu
+```{r map-jamiatu, fig.width=8, fig.height=8}
+surveyor_map("Jamiatu")
+```
+
+## Boboieh
+```{r map-boboieh, fig.width=8, fig.height=8}
+surveyor_map("Boboieh")
+```
+
+## Musa
+```{r map-musa, fig.width=5, fig.height=10}
+surveyor_map("Musa")
+```
+
+# Missing HHs
+
+```{r missing_hh_function}
+missing_hh_table <- function(surveyor) {
+  current_month_hhids <- hh_daily %>%
+    filter(month(survey_date) == month(Sys.Date()),
+           year(survey_date) == year(Sys.Date()),
+           !is.na(hhid)) %>%
+    distinct(hhid) %>%
+    pull(hhid)
+  
+  hh_daily %>%
+    filter(!is.na(hhid),
+           !hhid %in% current_month_hhids,
+           resp_surveyor == surveyor) %>%
+    group_by(hhid) %>%
+    arrange(desc(survey_date)) %>%
+    slice(1) %>%
+    ungroup() %>%
+    mutate(
+      survey_date = format(survey_date, "%b"),
+      number = gsub("\n", " ", number)
+    ) %>%
+    select(hhid, zone, name, number, survey_date) %>%
+    rename(HHID = hhid, Zone = zone, Name = name, Number = number, `Last Survey` = survey_date) %>%
+    arrange(Zone, HHID) %>%
+    kable(escape = TRUE, format = "html") %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+}
+
+missing_hh_count <- function(surveyor) {
+  current_month_hhids <- hh_daily %>%
+    filter(month(survey_date) == month(Sys.Date()),
+           year(survey_date) == year(Sys.Date()),
+           !is.na(hhid)) %>%
+    distinct(hhid) %>%
+    pull(hhid)
+  
+  hh_daily %>%
+    filter(!is.na(hhid),
+           !hhid %in% current_month_hhids,
+           resp_surveyor == surveyor) %>%
+    distinct(hhid) %>%
+    nrow()
+}
+```
+
+## Abdulai K (`r missing_hh_count("Abdulai K")` remaining)
+```{r missing_hh_abdulai_k}
+missing_hh_table("Abdulai K")
+```
+
+## Jamiatu (`r missing_hh_count("Jamiatu")` remaining)
+```{r missing_hh_jamiatu}
+missing_hh_table("Jamiatu")
+```
+
+## Boboieh (`r missing_hh_count("Boboieh")` remaining)
+```{r missing_hh_boboieh}
+missing_hh_table("Boboieh")
+```
+
+## Musa (`r missing_hh_count("Musa")` remaining)
+```{r missing_hh_musa}
+missing_hh_table("Musa")
+```
+
+```{r diagnostics, results='asis'}
+missing_hhid <- hh_current %>% filter(is.na(hhid))
+duplicate_hhid <- hh_current %>%
+  filter(!is.na(hhid)) %>%
+  count(hhid, community) %>%
+  filter(n > 1)
+month_mismatch <- hh_daily %>%
+  filter(!is.na(hhid),
+         survey_date >= floor_date(Sys.Date(), "month")) %>%
+  mutate(expected_month = format(survey_date, "%b")) %>%
+  filter(as.character(survey_month) != expected_month)
+
+if (nrow(missing_hhid) > 0) {
+  cat("**⚠ Surveys without HHIDs this month:**", nrow(missing_hhid), "\n\n")
+  missing_hhid %>%
+    select(uuid, hhid, surveyor_name, name, number) %>%
+    kable(format = "html") %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+    cat()
+  cat("\n\n")
+}
+if (nrow(duplicate_hhid) > 0) {
+  cat("**⚠ Duplicate HHIDs this month:**", nrow(duplicate_hhid), "\n\n")
+  hh_current %>%
+    filter(hhid %in% duplicate_hhid$hhid) %>%
+    select(uuid, hhid, surveyor_name, name, number) %>%
+    kable(format = "html") %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+    cat()
+  cat("\n\n")
+}
+if (nrow(month_mismatch) > 0) {
+  cat("**⚠ Survey month mismatches this month:**", nrow(month_mismatch), "\n\n")
+  month_mismatch %>%
+    select(uuid, hhid, surveyor_name, name, number) %>%
+    kable(format = "html") %>%
+    kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+    cat()
+  cat("\n\n")
+}
+if (format(Sys.Date(), "%b") %in% c("Dec", "Feb", "Apr", "Jun", "Aug", "Oct")) knitr::knit_exit()
+```
+
+# Missing WSs
+
+```{r ws_remaining_setup}
+current_survey_month <- format(Sys.Date(), "%b")
+
+remaining_sources <- function(data, comm, survey_month) {
+  already_done <- data %>%
+    filter(community == comm, display_month == survey_month) %>%
+    pull(wsid)
+  
+  data %>%
+    filter(community == comm, !is.na(wsid), !wsid %in% already_done) %>%
+    arrange(wsid, desc(as.numeric(display_month))) %>%
+    group_by(wsid) %>%
+    slice(1) %>%
+    ungroup() %>%
+    select(wsid, uuid, display_month, respondent_name, zone, water_source_type) %>%
+    arrange(zone, wsid)
+}
+```
+
+## Cockle Bay Remaining
+
+```{r, eval=is_survey_month}
+if (!is.na(current_survey_month)) {
+  remaining_sources(ws_daily, "Cockle Bay", current_survey_month) %>%
+    kable(caption = paste0("Cockle Bay: Water sources not yet surveyed (", current_survey_month, ")")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+}
+```
+
+## Dworzark Remaining
+
+```{r, eval=is_survey_month}
+if (!is.na(current_survey_month)) {
+  remaining_sources(ws_daily, "Dworzark", current_survey_month) %>%
+    kable(caption = paste0("Dworzark: Water sources not yet surveyed (", current_survey_month, ")")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+}
+```
+
+## Portee Rokupa Remaining
+
+```{r, eval=is_survey_month}
+if (!is.na(current_survey_month)) {
+  remaining_sources(ws_daily, "Portee Rokupa", current_survey_month) %>%
+    kable(caption = paste0("Portee Rokupa: Water sources not yet surveyed (", current_survey_month, ")")) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+}
+```

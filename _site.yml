@@ -4,11 +4,11 @@ navbar:
   title: "PhD Data Analysis"
   left:
     - text: "Daily Report"
-      href: rmd/PhD_Dailys.html
+      href: dailys.html
     - text: "Household Analysis"
-      href: rmd/HH_Analysis.html
+      href: hh_analysis.html
     - text: "Water Source Analysis"
-      href: rmd/Water_Source_Analysis.html
+      href: ws_analysis.html
 output:
   html_document:
     theme: flatly
@@ -18,4 +18,3 @@ output:
       smooth_scroll: true
     toc_depth: 2
     code_folding: hide
-

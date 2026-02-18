@@ -12,8 +12,12 @@ data/
 
 # Output
 output/
+docs/
+
+# Generated files (regenerated on knit/render)
+rosm.cache/
+*_files/
 
 # OS
 .DS_Store
 Thumbs.db
-

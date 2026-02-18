@@ -35,6 +35,7 @@ jobs:
       - name: Install R packages
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
+        cache: true
           packages: |
             any::tidyverse
             any::lubridate
@@ -53,6 +54,12 @@ jobs:
             any::readxl
             any::ggrepel
             any::patchwork
+            any::prettymapr
+            any::cowplot
+            any::ggridges
+            any::ggalluvial
+            any::mapview
+            any::RColorBrewer
 
       - name: Render site
         run: |

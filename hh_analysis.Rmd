@@ -1,0 +1,1822 @@
+---
+title: "Household Survey Analysis"
+date: "`r format(Sys.time(), '%B %d, %Y %H:%M')`"
+author: "Brian Mahayie Waters"
+output: 
+  html_document:
+    toc: true
+    toc_float: 
+      collapsed: true
+      smooth_scroll: true
+    toc_depth: 3
+    code_folding: hide
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE)
+library(knitr)
+library(scales)
+library(kableExtra)
+library(ggspatial)
+library(gridExtra)
+library(grid)
+library(gtable)
+library(prettymapr)
+library(cowplot)
+library(ggridges)
+library(ggalluvial)
+library(mapview)
+library(RColorBrewer)
+
+source("hh_cleanup.R")
+
+leones_to_usd <- 23.7
+Demographic_Summary_Month <- format(Sys.Date() %m-% months(1), "%b")
+
+score_vars <- c("hwise_worry_score", "hwise_interrupted_score", "hwise_clothes_score",
+                "hwise_schedule_score", "hwise_food_score", "hwise_hand_washing_score",
+                "hwise_body_washing_score", "hwise_drinking_score", "hwise_angry_score",
+                "hwise_thirsty_score", "hwise_no_water_score", "hwise_stigma_score")
+```
+
+```{r survey_counts}
+# Calculate counts and complete cases for each community
+month_order <- c("Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct")
+
+# Function to calculate complete cases
+calculate_complete <- function(data, current_month) {
+  months_up_to <- month_order[1:which(month_order == current_month)]
+  
+  data %>%
+    filter(!is.na(hhid), survey_month %in% months_up_to) %>%
+    group_by(hhid) %>%
+    summarise(n_months = n_distinct(survey_month), .groups = "drop") %>%
+    filter(n_months == length(months_up_to)) %>%
+    nrow()
+}
+
+# Calculate for each community
+communities <- hh_data %>% distinct(community) %>% pull()
+
+results <- map_df(communities, function(comm) {
+  comm_data <- hh_data %>% filter(community == comm)
+  
+  # Get unique hhids for this community
+  comm_hhids <- comm_data %>%
+    filter(!is.na(hhid)) %>%
+    distinct(hhid) %>%
+    nrow()
+  
+  counts <- comm_data %>%
+    count(survey_month, .drop = FALSE) %>%
+    pivot_wider(names_from = survey_month, values_from = n, values_fill = 0)
+  
+  complete_cases <- tibble(
+    survey_month = month_order
+  ) %>%
+    rowwise() %>%
+    mutate(complete = calculate_complete(comm_data, survey_month)) %>%
+    pivot_wider(names_from = survey_month, values_from = complete, values_fill = 0)
+  
+  # Combine counts and complete cases
+  combined <- counts
+  for (month in month_order) {
+    if (month %in% names(counts) && month %in% names(complete_cases)) {
+      count_val <- counts[[month]]
+      complete_val <- complete_cases[[month]]
+      combined[[month]] <- if_else(count_val == 0, 
+                                    "", 
+                                    paste0(count_val, " (", complete_val, "/", comm_hhids, ")"))
+    }
+  }
+  
+  combined %>%
+    mutate(community = comm,
+           Total = nrow(comm_data))
+})
+
+# Add totals row
+# Get total unique hhids across all communities
+total_hhids <- hh_data %>%
+  filter(!is.na(hhid)) %>%
+  distinct(hhid) %>%
+  nrow()
+
+totals_counts <- hh_data %>%
+  count(survey_month, .drop = FALSE) %>%
+  pivot_wider(names_from = survey_month, values_from = n, values_fill = 0)
+
+totals_complete <- tibble(
+  survey_month = month_order
+) %>%
+  rowwise() %>%
+  mutate(complete = calculate_complete(hh_data, survey_month)) %>%
+  pivot_wider(names_from = survey_month, values_from = complete, values_fill = 0)
+
+# Combine totals counts and complete cases
+totals <- totals_counts
+for (month in month_order) {
+  if (month %in% names(totals_counts) && month %in% names(totals_complete)) {
+    count_val <- totals_counts[[month]]
+    complete_val <- totals_complete[[month]]
+    totals[[month]] <- if_else(count_val == 0, 
+                                "", 
+                                paste0(count_val, " (", complete_val, "/", total_hhids, ")"))
+  }
+}
+
+totals <- totals %>%
+  mutate(community = "Total",
+         Total = nrow(hh_data))
+
+# Combine and format
+final_table <- results %>%
+  bind_rows(totals) %>%
+  rename(Community = community) %>%
+  select(Community, all_of(month_order), Total) %>%
+  kable(align = c('l', rep('c', length(month_order) + 1))) %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  row_spec(nrow(results) + 1, bold = TRUE) %>%
+  footnote(general_title = "Values show total surveys completed that month. Numbers in parentheses show households surveyed in all months from November through that month (complete cases / total unique households in community).", general = "")
+
+final_table
+```
+
+# Demographics
+## Household Head Gender
+```{r hoh_gender}
+hh_data %>%
+  filter(survey_month == Demographic_Summary_Month, !is.na(hh_gender), !is.na(community)) %>%
+  count(community, hh_gender) %>%
+  bind_rows(
+    hh_data %>%
+      filter(survey_month == Demographic_Summary_Month, !is.na(hh_gender), !is.na(community)) %>%
+      count(hh_gender) %>%
+      mutate(community = "Total")
+  ) %>%
+  group_by(community) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(community = factor(community, levels = c("Total", "Cockle Bay", "Dworzark", "Portee Rokupa")),
+         hh_gender = factor(hh_gender, levels = c("Female", "Male")),
+         fill_group = paste(hh_gender, ifelse(community == "Total", "Total", "Community"))) %>%
+  ggplot(aes(x = community, y = pct, fill = fill_group)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = paste0(round(pct, 0), "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 3) +
+  scale_fill_manual(values = c("Male Community" = "lightblue", 
+                                "Female Community" = "lightcoral",
+                                "Male Total" = "steelblue",
+                                "Female Total" = "indianred"),
+                    breaks = c("Male Community", "Female Community"),
+                    labels = c("Male", "Female")) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"), expand = expansion(mult = c(0, 0.05))) +
+  labs(x = "Community", y = NULL, fill = "Gender", 
+       title = "Household Head Gender") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "top")
+```
+
+## Household Composition
+
+```{r hh_composition}
+hh_data %>%
+  filter(survey_month == Demographic_Summary_Month, !is.na(community)) %>%
+  group_by(community) %>%
+  summarise(
+    `Adult Men` = mean(adult_men, na.rm = TRUE),
+    `Adult Women` = mean(adult_women, na.rm = TRUE),
+    Boys = mean(boys, na.rm = TRUE),
+    Girls = mean(girls, na.rm = TRUE)
+  ) %>%
+  mutate(total = `Adult Men` + `Adult Women` + Boys + Girls,
+         label = paste0(community, "\n(Avg HH Size: ", round(total, 1), ")")) %>%
+  pivot_longer(c(`Adult Men`, `Adult Women`, Boys, Girls), names_to = "group", values_to = "avg") %>%
+  group_by(community) %>%
+  mutate(pct = avg / sum(avg) * 100) %>%
+  ungroup() %>%
+  mutate(group = factor(group, levels = c("Girls", "Boys", "Adult Women", "Adult Men"))) %>%
+  ggplot(aes(x = label, y = pct, fill = group)) +
+  geom_col() +
+  geom_text(aes(label = round(avg, 1)), position = position_stack(vjust = 0.5), size = 3) +
+  scale_fill_manual(values = c("Adult Men" = "steelblue", "Adult Women" = "indianred",
+                               "Boys" = "lightblue", "Girls" = "lightcoral")) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  labs(x = NULL, y = NULL, fill = NULL, title = "Average Household Composition") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "top")
+```
+
+## HH Size Distribution
+
+```{r hh_size}
+hh_data %>%
+  filter(survey_month == Demographic_Summary_Month, !is.na(community)) %>%
+  mutate(hh_size = adult_men + adult_women + boys + girls) %>%
+  select(community, hh_size) %>%
+  bind_rows(
+    hh_data %>%
+      filter(survey_month == Demographic_Summary_Month, !is.na(community)) %>%
+      mutate(hh_size = adult_men + adult_women + boys + girls,
+             community = "Total") %>%
+      select(community, hh_size)
+  ) %>%
+  mutate(community = factor(community, levels = c("Total", "Cockle Bay", "Dworzark", "Portee Rokupa"))) %>%
+  ggplot(aes(x = hh_size, color = community, fill = community, alpha = community)) +
+  geom_density(linewidth = 1) +
+  scale_color_manual(values = c("Cockle Bay" = "forestgreen", "Dworzark" = "sandybrown", 
+                                "Portee Rokupa" = "steelblue", "Total" = "black")) +
+  scale_fill_manual(values = c("Cockle Bay" = "forestgreen", "Dworzark" = "sandybrown", 
+                               "Portee Rokupa" = "steelblue", "Total" = "black")) +
+  scale_alpha_manual(values = c("Cockle Bay" = 0.3, "Dworzark" = 0.3, 
+                                "Portee Rokupa" = 0.3, "Total" = 1)) +
+  scale_x_continuous(breaks = seq(0, 30, 5)) +
+  scale_y_continuous(labels = function(x) paste0(round(x * 100, 0), "%")) +
+  coord_cartesian(xlim = c(0, 30)) +
+  labs(x = "Household Size", y = "Percentage of Households", color = NULL, fill = NULL, alpha = NULL,
+       title = "Distribution of Household Size") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "top",
+        panel.grid.minor = element_blank()) +
+  guides(alpha = "none")
+```
+
+
+## Drinking Water Spending
+```{r drinking_spend}
+# Set y-axis limit
+spending_limit <- 50
+
+# Calculate monthly means and counts - arrange by month order
+drinking_spend_summary <- hh_data %>%
+  filter(!is.na(drinking_water_daily_spend), !is.na(community)) %>%
+  mutate(drinking_water_daily_spend = pmin(drinking_water_daily_spend, spending_limit)) %>%
+  group_by(survey_month) %>%
+  summarise(mean_spend = mean(drinking_water_daily_spend, na.rm = TRUE),
+            n = n()) %>%
+  arrange(survey_month)
+# Create labels with counts
+month_labels <- drinking_spend_summary %>%
+  mutate(label = paste0(survey_month, "\n(n=", n, ")")) %>%
+  pull(label, name = survey_month)
+hh_data %>%
+  filter(!is.na(drinking_water_daily_spend), !is.na(community)) %>%
+  mutate(drinking_water_daily_spend = pmin(drinking_water_daily_spend, spending_limit)) %>%
+  ggplot(aes(x = drinking_water_daily_spend, y = survey_month)) +
+  geom_density_ridges(fill = "grey70", alpha = 0.5, scale = 1.2) +
+  geom_point(data = drinking_spend_summary, aes(x = mean_spend, y = survey_month, color = "Mean"), 
+             size = 3, inherit.aes = FALSE) +
+  geom_path(data = drinking_spend_summary, aes(x = mean_spend, y = as.numeric(survey_month), color = "Mean", group = 1),
+            linewidth = 1.2, inherit.aes = FALSE) +
+  geom_text(data = drinking_spend_summary, aes(x = mean_spend, y = survey_month, label = round(mean_spend, 1)),
+            vjust = -1, size = 3, inherit.aes = FALSE) +
+  scale_color_manual(values = c("Mean" = "red")) +
+  scale_x_continuous(limits = c(0, spending_limit),
+                     breaks = seq(0, spending_limit, 10),
+                     labels = c("0", "10", "20", "30", "40", paste0(spending_limit, "+")),
+                     sec.axis = sec_axis(~ . / leones_to_usd, name = "USD", 
+                                        labels = scales::dollar_format(accuracy = 0.01))) +
+  scale_y_discrete(drop = FALSE, labels = month_labels) +
+  coord_flip() +
+  labs(x = "Daily Spend (Leones)", y = NULL, color = NULL, 
+       title = "Drinking Water Daily Spend Distribution") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        axis.text.x = element_text(hjust = 0))
+```
+
+## Domestic Water Spending
+
+```{r domestic_spend}
+# Set y-axis limit
+spending_limit <- 50
+# Calculate monthly means and counts - arrange by month order
+domestic_spend_summary <- hh_data %>%
+  filter(!is.na(domestic_water_daily_spend), !is.na(community)) %>%
+  mutate(domestic_water_daily_spend = pmin(domestic_water_daily_spend, spending_limit)) %>%
+  group_by(survey_month) %>%
+  summarise(mean_spend = mean(domestic_water_daily_spend, na.rm = TRUE),
+            n = n()) %>%
+  arrange(survey_month)
+# Create labels with counts
+month_labels <- domestic_spend_summary %>%
+  mutate(label = paste0(survey_month, "\n(n=", n, ")")) %>%
+  pull(label, name = survey_month)
+hh_data %>%
+  filter(!is.na(domestic_water_daily_spend), !is.na(community)) %>%
+  mutate(domestic_water_daily_spend = pmin(domestic_water_daily_spend, spending_limit)) %>%
+  ggplot(aes(x = domestic_water_daily_spend, y = survey_month)) +
+  geom_density_ridges(fill = "grey70", alpha = 0.5, scale = 1.2) +
+  geom_point(data = domestic_spend_summary, aes(x = mean_spend, y = survey_month, color = "Mean"), 
+             size = 3, inherit.aes = FALSE) +
+  geom_path(data = domestic_spend_summary, aes(x = mean_spend, y = as.numeric(survey_month), color = "Mean", group = 1),
+            linewidth = 1.2, inherit.aes = FALSE) +
+  geom_text(data = domestic_spend_summary, aes(x = mean_spend, y = survey_month, label = round(mean_spend, 1)),
+            vjust = -1, size = 3, inherit.aes = FALSE) +
+  scale_color_manual(values = c("Mean" = "red")) +
+  scale_x_continuous(limits = c(0, spending_limit),
+                     breaks = seq(0, spending_limit, 10),
+                     labels = c("0", "10", "20", "30", "40", paste0(spending_limit, "+")),
+                     sec.axis = sec_axis(~ . / leones_to_usd, name = "USD", 
+                                        labels = scales::dollar_format(accuracy = 0.01))) +
+  scale_y_discrete(drop = FALSE, labels = month_labels) +
+  coord_flip() +
+  labs(x = "Daily Spend (Leones)", y = NULL, color = NULL, 
+       title = "Domestic Water Daily Spend Distribution") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        axis.text.x = element_text(hjust = 0))
+```
+
+## Source Ownership and Training
+
+```{r source_table}
+hh_data %>%
+  filter(survey_month == Demographic_Summary_Month, !is.na(community)) %>%
+  summarise(
+    own_yes = sum(own_water_source == "Yes", na.rm = TRUE),
+    own_n = sum(!is.na(own_water_source)),
+    meets_yes = sum(source_meets_needs == "Yes", na.rm = TRUE),
+    meets_n = sum(!is.na(source_meets_needs)),
+    train_yes = sum(training_received == "Yes", na.rm = TRUE),
+    train_n = sum(!is.na(training_received))
+  ) %>%
+  {
+    d <- .
+    tibble(
+      Question = c("Own Water Source", "Source Meets Needs", "Training Received"),
+      Yes = paste0(c(d$own_yes, d$meets_yes, d$train_yes), " (", 
+                   round(c(d$own_yes/d$own_n, d$meets_yes/d$meets_n, d$train_yes/d$train_n) * 100, 1), "%)"),
+      No = paste0(c(d$own_n - d$own_yes, d$meets_n - d$meets_yes, d$train_n - d$train_yes), " (", 
+                  round(c(1 - d$own_yes/d$own_n, 1 - d$meets_yes/d$meets_n, 1 - d$train_yes/d$train_n) * 100, 1), "%)")
+    )
+  } %>%
+  kable(align = "lcc") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
+```
+
+# HWISE
+## Line Chart
+```{r hwise_lines}
+# Calculate monthly averages for individual HWISE variables
+hwise_monthly <- hh_data %>%
+  filter(!is.na(community)) %>%
+  group_by(survey_month) %>%
+  summarise(
+    across(all_of(score_vars),
+           ~mean(., na.rm = TRUE))
+  ) %>%
+  pivot_longer(cols = -survey_month,
+               names_to = "Variable",
+               values_to = "Mean") %>%
+  mutate(
+    Variable = case_when(
+      Variable == "hwise_worry_score" ~ "Worry",
+      Variable == "hwise_interrupted_score" ~ "Interrupted",
+      Variable == "hwise_clothes_score" ~ "Clothes",
+      Variable == "hwise_schedule_score" ~ "Schedule",
+      Variable == "hwise_food_score" ~ "Food",
+      Variable == "hwise_hand_washing_score" ~ "Hand Washing",
+      Variable == "hwise_body_washing_score" ~ "Body Washing",
+      Variable == "hwise_drinking_score" ~ "Drinking",
+      Variable == "hwise_angry_score" ~ "Angry",
+      Variable == "hwise_thirsty_score" ~ "Thirsty",
+      Variable == "hwise_no_water_score" ~ "No Water",
+      Variable == "hwise_stigma_score" ~ "Stigma",
+      TRUE ~ Variable
+    )
+  )
+
+# Calculate monthly average and SD for total HWISE score, filter out NA SD
+hwise_total_monthly <- hh_data %>%
+  filter(!is.na(community)) %>%
+  group_by(survey_month) %>%
+  summarise(total_mean = mean(hwise_total_score, na.rm = TRUE),
+            total_sd = sd(hwise_total_score, na.rm = TRUE)) %>%
+  filter(!is.na(total_sd))
+
+# Define meaningful colors for each item
+item_colors <- c(
+  "Worry" = "purple",
+  "Interrupted" = "orange",
+  "Clothes" = "tan4",
+  "Schedule" = "dodgerblue",
+  "Food" = "forestgreen",
+  "Hand Washing" = "cyan3",
+  "Body Washing" = "darkcyan",
+  "Drinking" = "navy",
+  "Angry" = "red",
+  "Thirsty" = "goldenrod",
+  "No Water" = "grey30",
+  "Stigma" = "hotpink"
+)
+
+# Plot 1: Individual items (right y-axis)
+p1 <- ggplot(hwise_monthly, aes(x = as.numeric(survey_month), y = Mean, color = Variable, group = Variable)) +
+  geom_line(linewidth = 0.8) +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12, 
+                     labels = c("Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"),
+                     limits = c(1, 12)) +
+  scale_y_continuous(position = "right", limits = c(0, 3)) +
+  scale_color_manual(values = item_colors) +
+  labs(x = NULL, y = "Average Item Score", color = "HWISE Item", title = "HWISE Scores") +
+  guides(color = guide_legend(nrow = 2, byrow = TRUE, title.position = "bottom", title.hjust = 0.5)) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom")
+
+# Plot 2: Total score (left y-axis)
+p2 <- ggplot(hwise_total_monthly, aes(x = as.numeric(survey_month), y = total_mean)) +
+  geom_line(linewidth = 1.5, linetype = "dashed", color = "black") +
+  geom_point(size = 3, color = "black") +
+  scale_x_continuous(breaks = 1:12, 
+                     labels = c("Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"),
+                     limits = c(1, 12)) +
+  scale_y_continuous(limits = c(0, 36)) +
+  labs(y = "Average Total HWISE Score") +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent"),
+        panel.grid = element_blank(),
+        axis.text.x = element_blank(),
+        axis.title.x = element_blank())
+
+# Overlay plots
+aligned_plots <- align_plots(p1, p2, align = "hv", axis = "tblr")
+ggdraw(aligned_plots[[1]]) + draw_plot(aligned_plots[[2]])
+```
+
+## Density Plot
+
+```{r hwise_density}
+# Set y-axis limit
+hwise_limit <- 36
+
+# Calculate monthly means and counts - arrange by month order
+hwise_summary <- hh_data %>%
+  filter(!is.na(hwise_total_score), !is.na(community)) %>%
+  mutate(hwise_total_score = pmin(hwise_total_score, hwise_limit)) %>%
+  group_by(survey_month) %>%
+  summarise(mean_score = mean(hwise_total_score, na.rm = TRUE),
+            n = n()) %>%
+  arrange(survey_month)
+
+# Create labels with counts on second line
+month_labels <- hwise_summary %>%
+  mutate(label = paste0(survey_month, "\n(n=", n, ")")) %>%
+  pull(label, name = survey_month)
+
+hh_data %>%
+  filter(!is.na(hwise_total_score), !is.na(community)) %>%
+  mutate(hwise_total_score = pmin(hwise_total_score, hwise_limit)) %>%
+  ggplot(aes(x = hwise_total_score, y = survey_month)) +
+  geom_density_ridges(fill = "grey70", alpha = 0.5, scale = 1.2) +
+  geom_point(data = hwise_summary, aes(x = mean_score, y = survey_month, color = "Mean Score"), 
+             size = 3, inherit.aes = FALSE) +
+  geom_path(data = hwise_summary, aes(x = mean_score, y = as.numeric(survey_month), color = "Mean Score", group = 1),
+            linewidth = 1.2, inherit.aes = FALSE) +
+  geom_text(data = hwise_summary, aes(x = mean_score, y = survey_month, label = round(mean_score, 1)),
+            vjust = -1, size = 3, inherit.aes = FALSE) +
+  scale_color_manual(values = c("Mean Score" = "red")) +
+  scale_x_continuous(limits = c(0, hwise_limit),
+                     breaks = seq(0, hwise_limit, 6),
+                     labels = c("0", "6", "12", "18", "24", "30", paste0(hwise_limit, "+"))) +
+  scale_y_discrete(drop = FALSE, labels = month_labels) +
+  coord_flip() +
+  labs(x = "HWISE Total Score", y = NULL, color = NULL, title = "Distribution of HWISE Scores") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        axis.text.x = element_text(hjust = 0))
+```
+
+# HH Water Sources
+
+## Drinking Source
+
+### Source Type
+
+```{r drink_source_type, cache = F}
+# Prepare data - all households with valid data, one row per hhid/month
+alluvial_data <- hh_data %>%
+  filter(!is.na(drinking_source_type), !is.na(hhid), !is.na(survey_month)) %>%
+  select(hhid, survey_month, drinking_source_type) %>%
+  group_by(hhid, survey_month) %>%
+  slice(1) %>%
+  ungroup() %>%
+  mutate(survey_month = factor(survey_month, levels = levels(hh_data$survey_month)))
+
+# Define color mapping
+color_map <- c(
+  "Open Well" = "tan4",
+  "Closed Well" = "tan2",
+  "Private Tap" = "coral3",
+  "Public Tap" = "coral1",
+  "Surface Water" = "snow3",
+  "Spring" = "snow1",
+  "Tank" = "cornsilk1",
+  "Sachet" = "steelblue1",
+  "My own source" = "grey50",
+  "Rainwater" = "navy"
+)
+
+# Transform data to proportions for plotting
+alluvial_data_prop <- alluvial_data %>%
+  add_count(survey_month, name = "month_total") %>%
+  group_by(hhid) %>%
+  mutate(weight = 1 / month_total) %>%
+  ungroup()
+
+# Create alluvial plot with household flows but proportional scale
+ggplot(alluvial_data_prop,
+       aes(x = survey_month, stratum = drinking_source_type, alluvium = hhid,
+           y = weight, fill = drinking_source_type)) +
+  geom_flow(stat = "alluvium", aes.flow = "forward", alpha = 0.6) +
+  geom_stratum(width = 0.4) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_fill_manual(values = color_map) +
+  labs(x = NULL, y = "Percent of Households", fill = "Source Type",
+       title = "Drinking Water Source Migration") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  guides(fill = guide_legend(nrow = 2, byrow = FALSE))
+```
+
+```{r}
+# Calculate percentages for the table
+summary_data <- alluvial_data %>%
+  count(survey_month, drinking_source_type) %>%
+  group_by(survey_month) %>%
+  mutate(pct = n / sum(n) * 100,
+         display = paste0(n, " (", round(pct, 0), "%)")) %>%
+  ungroup()
+
+# Calculate totals for each month
+totals <- alluvial_data %>%
+  count(survey_month) %>%
+  mutate(display = as.character(n)) %>%
+  select(survey_month, display) %>%
+  pivot_wider(names_from = survey_month, values_from = display, values_fill = "0") %>%
+  mutate(` ` = "", `Source Type` = "Total") %>%
+  select(` `, `Source Type`, everything())
+
+# Create summary table
+summary_table <- summary_data %>%
+  select(drinking_source_type, survey_month, display) %>%
+  pivot_wider(names_from = survey_month, values_from = display, values_fill = "0 (0%)") %>%
+  arrange(drinking_source_type) %>%
+  mutate(` ` = "  ") %>%
+  select(` `, everything()) %>%
+  rename("Source Type" = drinking_source_type) %>%
+  bind_rows(totals)
+
+# Create table plot with colored cells
+table_plot <- gridExtra::tableGrob(summary_table, rows = NULL, 
+                                   theme = gridExtra::ttheme_minimal())
+
+# Add colors to the first column (row i+1 because of header, but not for Total row)
+for (i in 1:(nrow(summary_table) - 1)) {
+  source_type <- summary_table$`Source Type`[i]
+  if (source_type %in% names(color_map)) {
+    table_plot <- gtable::gtable_add_grob(
+      table_plot,
+      grid::rectGrob(gp = grid::gpar(fill = color_map[source_type], col = "black")),
+      t = i + 1, l = 1, b = i + 1, r = 1,
+      z = 3
+    )
+  }
+}
+
+# Display table
+grid::grid.newpage()
+grid::grid.draw(table_plot)
+```
+
+### Potable Drinking Source
+
+```{r}
+hh_data %>%
+  filter(!is.na(drinking_potable), !is.na(community)) %>%
+  count(survey_month, drinking_potable) %>%
+  group_by(survey_month) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(drinking_potable = factor(drinking_potable, levels = c("Yes", "No"))) %>%
+  ggplot(aes(x = survey_month, y = pct, fill = drinking_potable)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = paste0(round(pct, 0), "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 3, color = "white") +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = c("Yes" = "lightblue", "No" = "indianred")) +
+  labs(x = NULL, y = NULL, fill = "Potable",
+       title = "Drinking Water Potability") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Minutes Gathering Water
+
+```{r}
+# Set y-axis limit
+time_limit <- 120
+
+# Calculate total drinking water collection time
+hh_data <- hh_data %>%
+  mutate(drinking_total_time = drinking_walk_time * 2 + drinking_wait_time)
+
+# Calculate monthly means and counts
+drinking_time_summary <- hh_data %>%
+  filter(!is.na(drinking_total_time), !is.na(community)) %>%
+  mutate(drinking_total_time = pmin(drinking_total_time, time_limit)) %>%
+  group_by(survey_month) %>%
+  summarise(mean_time = mean(drinking_total_time, na.rm = TRUE),
+            n = n())
+
+# Create labels with counts on second line
+month_labels <- drinking_time_summary %>%
+  mutate(label = paste0(survey_month, "\n(n=", n, ")")) %>%
+  pull(label, name = survey_month)
+
+hh_data %>%
+  filter(!is.na(drinking_total_time), !is.na(community)) %>%
+  mutate(drinking_total_time = pmin(drinking_total_time, time_limit)) %>%
+  ggplot(aes(x = drinking_total_time, y = survey_month)) +
+  geom_density_ridges(fill = "grey70", alpha = 0.5, scale = 1.2) +
+  geom_point(data = drinking_time_summary, aes(x = mean_time, y = survey_month, color = "Mean"), 
+             size = 3, inherit.aes = FALSE) +
+  geom_path(data = drinking_time_summary, aes(x = mean_time, y = as.numeric(survey_month), color = "Mean", group = 1),
+            linewidth = 1.2, inherit.aes = FALSE) +
+  geom_text(data = drinking_time_summary, aes(x = mean_time, y = survey_month, label = round(mean_time, 1)),
+            vjust = -1, size = 3, inherit.aes = FALSE) +
+  scale_color_manual(values = c("Mean" = "red")) +
+  scale_x_continuous(limits = c(0, time_limit), 
+                     breaks = seq(0, time_limit, 30), 
+                     labels = c("0", "30", "60", "90", paste0(time_limit, "+"))) +
+  scale_y_discrete(drop = FALSE, labels = month_labels) +
+  coord_flip() +
+  labs(x = "Total Collection Time (minutes)", y = NULL, color = NULL, 
+       title = "Daily Drinking Water Collection Time") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        axis.text.x = element_text(hjust = 0))
+```
+
+
+## Domestic Source
+
+### Source Type
+```{r domestic_source_type}
+# Prepare data - all households with valid data, one row per hhid/month
+alluvial_domestic <- hh_data %>%
+  filter(!is.na(domestic_source_type), !is.na(hhid), !is.na(survey_month)) %>%
+  select(hhid, survey_month, domestic_source_type) %>%
+  group_by(hhid, survey_month) %>%
+  slice(1) %>%
+  ungroup() %>%
+  mutate(survey_month = factor(survey_month, levels = levels(hh_data$survey_month)))
+
+# Define color mapping
+color_map_domestic <- c(
+  "Open Well" = "tan4",
+  "Closed Well" = "tan2",
+  "Private Tap" = "coral3",
+  "Public Tap" = "coral1",
+  "Surface Water" = "snow3",
+  "Spring" = "snow1",
+  "Tank" = "cornsilk1",
+  "Sachet" = "steelblue1",
+  "My own source" = "grey50",
+  "Rainwater" = "navy"
+)
+
+# Transform data to proportions for plotting
+alluvial_domestic_prop <- alluvial_domestic %>%
+  add_count(survey_month, name = "month_total") %>%
+  group_by(hhid) %>%
+  mutate(weight = 1 / month_total) %>%
+  ungroup()
+
+# Create alluvial plot with household flows but proportional scale
+ggplot(alluvial_domestic_prop,
+       aes(x = survey_month, stratum = domestic_source_type, alluvium = hhid,
+           y = weight, fill = domestic_source_type)) +
+  geom_flow(stat = "alluvium", aes.flow = "forward", alpha = 0.6) +
+  geom_stratum(width = 0.4) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_fill_manual(values = color_map_domestic) +
+  labs(x = NULL, y = "Percent of Households", fill = "Source Type",
+       title = "Domestic Water Source Migration") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  guides(fill = guide_legend(nrow = 2, byrow = FALSE))
+```
+
+```{r domestic_source_table}
+# Calculate percentages for the table
+summary_data_domestic <- alluvial_domestic %>%
+  count(survey_month, domestic_source_type) %>%
+  group_by(survey_month) %>%
+  mutate(pct = n / sum(n) * 100,
+         display = paste0(n, " (", round(pct, 0), "%)")) %>%
+  ungroup()
+
+# Calculate totals for each month
+totals_domestic <- alluvial_domestic %>%
+  count(survey_month) %>%
+  mutate(display = as.character(n)) %>%
+  select(survey_month, display) %>%
+  pivot_wider(names_from = survey_month, values_from = display, values_fill = "0") %>%
+  mutate(` ` = "", `Source Type` = "Total") %>%
+  select(` `, `Source Type`, everything())
+
+# Create summary table
+summary_table_domestic <- summary_data_domestic %>%
+  select(domestic_source_type, survey_month, display) %>%
+  pivot_wider(names_from = survey_month, values_from = display, values_fill = "0 (0%)") %>%
+  arrange(domestic_source_type) %>%
+  mutate(` ` = "  ") %>%
+  select(` `, everything()) %>%
+  rename("Source Type" = domestic_source_type) %>%
+  bind_rows(totals_domestic)
+
+# Create table plot with colored cells
+table_plot_domestic <- gridExtra::tableGrob(summary_table_domestic, rows = NULL, 
+                                            theme = gridExtra::ttheme_minimal())
+
+# Add colors to the first column (row i+1 because of header, but not for Total row)
+for (i in 1:(nrow(summary_table_domestic) - 1)) {
+  source_type <- summary_table_domestic$`Source Type`[i]
+  if (source_type %in% names(color_map_domestic)) {
+    table_plot_domestic <- gtable::gtable_add_grob(
+      table_plot_domestic,
+      grid::rectGrob(gp = grid::gpar(fill = color_map_domestic[source_type], col = "black")),
+      t = i + 1, l = 1, b = i + 1, r = 1,
+      z = 3
+    )
+  }
+}
+
+# Display table
+grid::grid.newpage()
+grid::grid.draw(table_plot_domestic)
+```
+
+### Minutes Gathering Water
+
+```{r}
+# Set y-axis limit
+time_limit <- 120
+
+# Calculate total domestic water collection time
+hh_data <- hh_data %>%
+  mutate(domestic_total_time = domestic_walk_time * 2 + domestic_wait_time)
+
+# Calculate monthly means and counts - arrange by month order
+domestic_time_summary <- hh_data %>%
+  filter(!is.na(domestic_total_time), !is.na(community)) %>%
+  mutate(domestic_total_time = pmin(domestic_total_time, time_limit)) %>%
+  group_by(survey_month) %>%
+  summarise(mean_time = mean(domestic_total_time, na.rm = TRUE),
+            n = n()) %>%
+  arrange(survey_month)
+
+# Create labels with counts on second line
+month_labels <- domestic_time_summary %>%
+  mutate(label = paste0(survey_month, "\n(n=", n, ")")) %>%
+  pull(label, name = survey_month)
+
+hh_data %>%
+  filter(!is.na(domestic_total_time), !is.na(community)) %>%
+  mutate(domestic_total_time = pmin(domestic_total_time, time_limit)) %>%
+  ggplot(aes(x = domestic_total_time, y = survey_month)) +
+  geom_density_ridges(fill = "grey70", alpha = 0.5, scale = 1.2) +
+  geom_point(data = domestic_time_summary, aes(x = mean_time, y = survey_month, color = "Mean"), 
+             size = 3, inherit.aes = FALSE) +
+  geom_path(data = domestic_time_summary, aes(x = mean_time, y = as.numeric(survey_month), color = "Mean", group = 1),
+            linewidth = 1.2, inherit.aes = FALSE) +
+  geom_text(data = domestic_time_summary, aes(x = mean_time, y = survey_month, label = round(mean_time, 1)),
+            vjust = -1, size = 3, inherit.aes = FALSE) +
+  scale_color_manual(values = c("Mean" = "red")) +
+  scale_x_continuous(limits = c(0, time_limit), 
+                     breaks = seq(0, time_limit, 30), 
+                     labels = c("0", "30", "60", "90", paste0(time_limit, "+"))) +
+  scale_y_discrete(drop = FALSE, labels = month_labels) +
+  coord_flip() +
+  labs(x = "Total Collection Time (minutes)", y = NULL, color = NULL, 
+       title = "Domestic Water Collection Time Distribution") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        axis.text.x = element_text(hjust = 0))
+```
+
+# HH-Source Connections (January)
+
+```{r, include=FALSE}
+# --- Household Data from hh_data ---
+hh_data_raw <- hh_data %>%
+  filter(survey_month == "Jan") %>%
+  separate(gps_location, into = c("hh_lat", "hh_lon", "hh_alt", "hh_acc"), 
+           sep = " ", remove = FALSE, convert = TRUE) %>%
+  select(community, hh_lat, hh_lon, 
+         drinking_source_type, drinking_source_selection,
+         domestic_source_type, domestic_source_selection)
+
+# --- Water Source Data ---
+kobo_token <- Sys.getenv("KOBO_TOKEN")
+base_url <- "https://kf.kobotoolbox.org/api/v2/assets/"
+
+response_ws <- GET(
+  paste0(base_url, "aDnYgCWxBduEXrC6cFzCP2", "/data.json"),
+  add_headers(Authorization = paste("Token", kobo_token))
+)
+data_list_ws <- content(response_ws, as = "parsed", simplifyDataFrame = TRUE)
+ws_data_raw <- as.data.frame(data_list_ws$results)
+
+ws_uuid <- ws_data_raw[["_uuid"]]
+
+names(ws_data_raw) <- names(ws_data_raw) %>%
+  sub(".*/", "", .) %>%
+  sub("^_", "", .)
+ws_data_raw <- ws_data_raw[, !duplicated(names(ws_data_raw))]
+ws_data_raw$uuid <- ws_uuid
+
+ws_data_raw <- ws_data_raw %>%
+  filter(consent == "yes") %>%
+  separate(gps_location, into = c("ws_lat", "ws_lon", "ws_alt", "ws_acc"), 
+           sep = " ", remove = FALSE, convert = TRUE) %>%
+  mutate(water_source_type = str_to_title(str_replace_all(water_source_type, "_", " ")))
+
+# --- Function to create connection map ---
+create_connection_map <- function(hh_community, ws_community, shapefile, source_type = "drinking") {
+  
+  # Water source colors
+  ws_colors <- c(
+    "Closed Well" = "tan2",
+    "Open Well" = "tan4",
+    "Private Tap" = "coral3",
+    "Public Tap" = "coral1",
+    "Spring" = "snow1",
+    "Surface Water" = "snow3",
+    "Tank" = "cornsilk1"
+  )
+  
+  # Set column names based on source type
+  type_col <- if(source_type == "drinking") "drinking_source_type" else "domestic_source_type"
+  selection_col <- if(source_type == "drinking") "drinking_source_selection" else "domestic_source_selection"
+  
+  # Filter and convert household data to sf once
+  hh_sf <- hh_data_raw %>%
+    filter(community == hh_community, !is.na(hh_lat), !is.na(hh_lon)) %>%
+    rename(source_type = !!type_col, source_selection = !!selection_col) %>%
+    st_as_sf(coords = c("hh_lon", "hh_lat"), crs = 4326, remove = FALSE) %>%
+    st_filter(shapefile) %>%
+    mutate(hh_color = if_else(source_type == "Sachet", "Sachet", "Other"))
+  
+  # Filter and convert water source data to sf once
+  ws_sf <- ws_data_raw %>%
+    filter(community == ws_community, !is.na(ws_lat), !is.na(ws_lon)) %>%
+    st_as_sf(coords = c("ws_lon", "ws_lat"), crs = 4326, remove = FALSE) %>%
+    st_filter(shapefile)
+  
+  # Create connections using sf objects directly
+  hh_df <- st_drop_geometry(hh_sf)
+  ws_df <- st_drop_geometry(ws_sf)
+  
+  connections <- hh_df %>%
+    inner_join(ws_df, by = c("source_selection" = "uuid")) %>%
+    rowwise() %>%
+    mutate(
+      distance = st_distance(
+        st_sfc(st_point(c(hh_lon, hh_lat)), crs = 4326),
+        st_sfc(st_point(c(ws_lon, ws_lat)), crs = 4326)
+      ) %>% as.numeric()
+    ) %>%
+    ungroup()
+  
+  # Build map
+  if(nrow(connections) > 0) {
+    lines_sf <- connections %>%
+      rowwise() %>%
+      mutate(
+        geometry = st_sfc(st_linestring(matrix(c(hh_lon, hh_lat, ws_lon, ws_lat), ncol = 2, byrow = TRUE)), crs = 4326)
+      ) %>%
+      ungroup() %>%
+      st_as_sf() %>%
+      mutate(distance_label = paste0(round(distance, 1), " meters"))
+    
+    mapview(lines_sf, zcol = "distance", color = colorRampPalette(c("blue", "red"))(100), layer.name = "Distance", lwd = 2, label = lines_sf$distance_label) +
+      mapview(hh_sf %>% st_drop_geometry() %>% st_as_sf(coords = c("hh_lon", "hh_lat"), crs = 4326), 
+              zcol = "hh_color", col.regions = c("tan", "black"), cex = 2, layer.name = "Households", 
+              label = hh_sf$source_type, legend = FALSE) +
+      mapview(ws_sf %>% st_drop_geometry() %>% st_as_sf(coords = c("ws_lon", "ws_lat"), crs = 4326), 
+              zcol = "water_source_type", col.regions = ws_colors, cex = 4, layer.name = "Water Sources")
+  } else {
+    mapview(hh_sf %>% st_drop_geometry() %>% st_as_sf(coords = c("hh_lon", "hh_lat"), crs = 4326), 
+            zcol = "hh_color", col.regions = c("tan", "black"), cex = 2, layer.name = "Households", 
+            label = hh_sf$source_type, legend = FALSE) +
+      mapview(ws_sf %>% st_drop_geometry() %>% st_as_sf(coords = c("ws_lon", "ws_lat"), crs = 4326), 
+              zcol = "water_source_type", col.regions = ws_colors, cex = 4, layer.name = "Water Sources")
+  }
+}
+```
+
+## Cockle Bay
+
+### Drinking Water Sources
+```{r cockle-drinking}
+create_connection_map("Cockle Bay", "cockle_bay", cockle_shapefile, "drinking")
+```
+
+### Domestic Water Sources
+```{r cockle-domestic}
+create_connection_map("Cockle Bay", "cockle_bay", cockle_shapefile, "domestic")
+```
+
+## Dworzark
+
+### Drinking Water Sources
+```{r dworzark-drinking}
+create_connection_map("Dworzark", "dworzark", dworzark_shapefile, "drinking")
+```
+
+### Domestic Water Sources
+```{r dworzark-domestic}
+create_connection_map("Dworzark", "dworzark", dworzark_shapefile, "domestic")
+```
+
+## Portee Rokupa
+
+### Drinking Water Sources
+```{r portee-drinking}
+create_connection_map("Portee Rokupa", "portee_rokupa", portee_shapefile, "drinking")
+```
+
+### Domestic Water Sources
+```{r portee-domestic}
+create_connection_map("Portee Rokupa", "portee_rokupa", portee_shapefile, "domestic")
+```
+
+
+# Water Sources
+## Sources Access Distribution
+```{r}
+# Set y-axis limit
+access_limit <- 10
+
+# Calculate monthly means and counts - arrange by month order
+sources_access_summary <- hh_data %>%
+  filter(!is.na(sources_access), !is.na(community)) %>%
+  mutate(sources_access = pmin(sources_access, access_limit)) %>%
+  group_by(survey_month) %>%
+  summarise(mean_access = mean(sources_access, na.rm = TRUE),
+            n = n()) %>%
+  arrange(survey_month)
+
+# Create labels with counts on second line
+month_labels <- sources_access_summary %>%
+  mutate(label = paste0(survey_month, "\n(n=", n, ")")) %>%
+  pull(label, name = survey_month)
+
+hh_data %>%
+  filter(!is.na(sources_access), !is.na(community)) %>%
+  mutate(sources_access = pmin(sources_access, access_limit)) %>%
+  ggplot(aes(x = sources_access, y = survey_month)) +
+  geom_density_ridges(fill = "grey70", alpha = 0.5, scale = 1.2) +
+  geom_point(data = sources_access_summary, aes(x = mean_access, y = survey_month, color = "Mean"), 
+             size = 3, inherit.aes = FALSE) +
+  geom_path(data = sources_access_summary, aes(x = mean_access, y = as.numeric(survey_month), color = "Mean", group = 1),
+            linewidth = 1.2, inherit.aes = FALSE) +
+  geom_text(data = sources_access_summary, aes(x = mean_access, y = survey_month, label = round(mean_access, 1)),
+            vjust = -1, size = 3, inherit.aes = FALSE) +
+  scale_color_manual(values = c("Mean" = "red")) +
+  scale_x_continuous(limits = c(0, access_limit), 
+                     breaks = seq(0, access_limit, 2), 
+                     labels = c("0", "2", "4", "6", "8", paste0(access_limit, "+"))) +
+  scale_y_discrete(drop = FALSE, labels = month_labels) +
+  coord_flip() +
+  labs(x = "Sources Access", y = NULL, color = NULL, title = "Sources Access Distribution") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        axis.text.x = element_text(hjust = 0))
+```
+
+## Sources Used Distribution
+```{r}
+# Set y-axis limit
+used_limit <- 10
+
+# Calculate monthly means and counts - arrange by month order
+sources_used_summary <- hh_data %>%
+  filter(!is.na(sources_used), !is.na(community)) %>%
+  mutate(sources_used = pmin(sources_used, used_limit)) %>%
+  group_by(survey_month) %>%
+  summarise(mean_used = mean(sources_used, na.rm = TRUE),
+            n = n()) %>%
+  arrange(survey_month)
+
+# Create labels with counts on second line
+month_labels <- sources_used_summary %>%
+  mutate(label = paste0(survey_month, "\n(n=", n, ")")) %>%
+  pull(label, name = survey_month)
+
+hh_data %>%
+  filter(!is.na(sources_used), !is.na(community)) %>%
+  mutate(sources_used = pmin(sources_used, used_limit)) %>%
+  ggplot(aes(x = sources_used, y = survey_month)) +
+  geom_density_ridges(fill = "grey70", alpha = 0.5, scale = 1.2) +
+  geom_point(data = sources_used_summary, aes(x = mean_used, y = survey_month, color = "Mean"), 
+             size = 3, inherit.aes = FALSE) +
+  geom_path(data = sources_used_summary, aes(x = mean_used, y = as.numeric(survey_month), color = "Mean", group = 1),
+            linewidth = 1.2, inherit.aes = FALSE) +
+  geom_text(data = sources_used_summary, aes(x = mean_used, y = survey_month, label = round(mean_used, 1)),
+            vjust = -1, size = 3, inherit.aes = FALSE) +
+  scale_color_manual(values = c("Mean" = "red")) +
+  scale_x_continuous(limits = c(0, used_limit), 
+                     breaks = seq(0, used_limit, 2), 
+                     labels = c("0", "2", "4", "6", "8", paste0(used_limit, "+"))) +
+  scale_y_discrete(drop = FALSE, labels = month_labels) +
+  coord_flip() +
+  labs(x = "Sources Used", y = NULL, color = NULL, title = "Sources Used Distribution") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        axis.text.x = element_text(hjust = 0))
+```
+
+## Sachet Frequency
+```{r}
+hh_data %>%
+  filter(!is.na(sachet_frequency), !is.na(community)) %>%
+  count(survey_month, sachet_frequency) %>%
+  group_by(survey_month) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  ggplot(aes(x = survey_month, y = pct, fill = sachet_frequency)) +
+  geom_col() +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 3) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = c(
+    "Never (0 times)" = "forestgreen",
+    "Rarely (1-2 times)" = "#5AAE61",
+    "Sometimes (3-10 times)" = "#74C476",
+    "Often (11-20 times)" = "#6BAED6",
+    "Always (More than 20 times)" = "steelblue",
+    "Don't know" = "grey",
+    "Not Applicable" = "grey50"
+  )) +
+  labs(x = NULL, y = NULL, fill = NULL, title = "Sachet Water Usage") +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Collection Time
+```{r}
+hh_data %>%
+  filter(!is.na(community)) %>%
+  mutate(
+    combined_time = case_when(
+      collection_time == "Morning" & !is.na(morning_specific_time) ~ as.character(morning_specific_time),
+      !is.na(collection_time) ~ as.character(collection_time),
+      TRUE ~ NA_character_
+    ),
+    combined_time = factor(combined_time, 
+                          levels = c("1am", "2am", "3am", "4am", "5am", "6am", "7am", "8am", 
+                                    "9am", "10am", "11am", "12pm", "Afternoon", "Evening", 
+                                    "Night (9pm-3am)", "Varies"))
+  ) %>%
+  filter(!is.na(combined_time)) %>%
+  count(survey_month, combined_time) %>%
+  group_by(survey_month) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  ggplot(aes(x = survey_month, y = pct, fill = combined_time)) +
+  geom_col() +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 2.5) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = c(
+    "1am" = "#67000D",
+    "2am" = "#A50F15",
+    "3am" = "#CB181D",
+    "4am" = "#EF3B2C",
+    "5am" = "#FB6A4A",
+    "6am" = "#C6DBEF",
+    "7am" = "#9ECAE1",
+    "8am" = "#6BAED6",
+    "9am" = "#4292C6",
+    "10am" = "#2171B5",
+    "11am" = "#08519C",
+    "12pm" = "#08306B",
+    "Afternoon" = "grey80",
+    "Evening" = "grey50",
+    "Night (9pm-3am)" = "grey20",
+    "Varies" = "white"
+  )) +
+  labs(x = NULL, y = NULL, fill = NULL, title = "Water Collection Time") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "right",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Collection Frequency
+```{r}
+hh_data %>%
+  filter(!is.na(collection_freq), !is.na(community)) %>%
+  count(survey_month, collection_freq) %>%
+  group_by(survey_month) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  ggplot(aes(x = survey_month, y = pct, fill = collection_freq)) +
+  geom_col() +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 3) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = c(
+    "3 times per day" = "#EF3B2C",
+    "2 times per day" = "#FC9272",
+    "Daily" = "grey50",
+    "Every 2 days" = "#9ECAE1",
+    "Weekly" = "#4292C6",
+    "Biweekly" = "#2171B5",
+    "Up to biweekly" = "#08519C"
+  )) +
+  labs(x = NULL, y = NULL, fill = NULL, title = "Water Collection Frequency") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Water Gathering
+## Daily Helpers
+```{r}
+# Set y-axis limit
+helpers_limit <- 10
+
+# Calculate monthly means and counts - arrange by month order
+daily_helpers_summary <- hh_data %>%
+  filter(!is.na(daily_helpers), !is.na(community)) %>%
+  mutate(daily_helpers = pmin(daily_helpers, helpers_limit)) %>%
+  group_by(survey_month) %>%
+  summarise(mean_helpers = mean(daily_helpers, na.rm = TRUE),
+            n = n()) %>%
+  arrange(survey_month)
+
+# Create labels with counts on second line
+month_labels <- daily_helpers_summary %>%
+  mutate(label = paste0(survey_month, "\n(n=", n, ")")) %>%
+  pull(label, name = survey_month)
+
+hh_data %>%
+  filter(!is.na(daily_helpers), !is.na(community)) %>%
+  mutate(daily_helpers = pmin(daily_helpers, helpers_limit)) %>%
+  ggplot(aes(x = daily_helpers, y = survey_month)) +
+  geom_density_ridges(fill = "grey70", alpha = 0.5, scale = 1.2) +
+  geom_point(data = daily_helpers_summary, aes(x = mean_helpers, y = survey_month, color = "Mean"), 
+             size = 3, inherit.aes = FALSE) +
+  geom_path(data = daily_helpers_summary, aes(x = mean_helpers, y = as.numeric(survey_month), color = "Mean", group = 1),
+            linewidth = 1.2, inherit.aes = FALSE) +
+  geom_text(data = daily_helpers_summary, aes(x = mean_helpers, y = survey_month, label = round(mean_helpers, 1)),
+            vjust = -1, size = 3, inherit.aes = FALSE) +
+  scale_color_manual(values = c("Mean" = "red")) +
+  scale_x_continuous(limits = c(0, helpers_limit), 
+                     breaks = seq(0, helpers_limit, 2), 
+                     labels = c("0", "2", "4", "6", "8", paste0(helpers_limit, "+"))) +
+  scale_y_discrete(drop = FALSE, labels = month_labels) +
+  coord_flip() +
+  labs(x = "Daily Helpers", y = NULL, color = NULL, title = "Daily Helpers Distribution") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        axis.text.x = element_text(hjust = 0))
+```
+
+## Jerrycans Carried by Gender
+```{r}
+hh_data %>%
+  filter(!is.na(community)) %>%
+  group_by(survey_month) %>%
+  summarise(
+    Men = sum(jerrycans_men, na.rm = TRUE),
+    Women = sum(jerrycans_women, na.rm = TRUE),
+    Boys = sum(jerrycans_boys, na.rm = TRUE),
+    Girls = sum(jerrycans_girls, na.rm = TRUE),
+    Hired = sum(jerrycans_hired, na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = -survey_month, names_to = "group", values_to = "count") %>%
+  group_by(survey_month) %>%
+  mutate(pct = count / sum(count) * 100) %>%
+  ungroup() %>%
+  mutate(group = factor(group, levels = c("Girls", "Women", "Boys", "Men", "Hired"))) %>%
+  ggplot(aes(x = survey_month, y = pct, fill = group)) +
+  geom_col() +
+  geom_text(aes(label = paste0(round(pct, 0), "%")), position = position_stack(vjust = 0.5), size = 3) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = c(
+    "Men" = "steelblue",
+    "Boys" = "lightblue",
+    "Women" = "indianred",
+    "Girls" = "lightcoral",
+    "Hired" = "grey70"
+  )) +
+  labs(x = NULL, y = NULL, fill = NULL, title = "Jerrycans Carried by Group") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## School Days Missed
+```{r}
+# Calculate all monthly stats
+school_stats <- hh_data %>%
+  filter(!is.na(community), survey_month != "Dec") %>%
+  group_by(survey_month) %>%
+  summarise(
+    total_hh = n(),
+    hh_with_children = sum(school_age_boys > 0 | school_age_girls > 0, na.rm = TRUE),
+    pct_with_children = round(hh_with_children / total_hh * 100, 1)
+  )
+
+school_missed_stats <- hh_data %>%
+  filter(!is.na(community), survey_month != "Dec", (school_age_boys > 0 | school_age_girls > 0)) %>%
+  mutate(num_children = school_age_boys + school_age_girls,
+         days_missed = boys_late_school + girls_late_school,
+         days_per_child = days_missed / num_children,
+         days_per_boy = ifelse(school_age_boys > 0 & boys_late_school > 0, boys_late_school / school_age_boys, NA),
+         days_per_girl = ifelse(school_age_girls > 0 & girls_late_school > 0, girls_late_school / school_age_girls, NA)) %>%
+  filter(!is.na(days_per_child)) %>%
+  group_by(survey_month) %>%
+  summarise(
+    hh_with_children = n(),
+    hh_missed = sum(days_missed > 0, na.rm = TRUE),
+    pct_missed = round(hh_missed / hh_with_children * 100, 1),
+    avg_days_per_child = round(mean(days_per_child, na.rm = TRUE), 1),
+    avg_days_per_child_nonzero = round(mean(days_per_child[days_missed > 0], na.rm = TRUE), 1),
+    avg_days_per_girl_nonzero = round(mean(days_per_girl, na.rm = TRUE), 1),
+    avg_days_per_boy_nonzero = round(mean(days_per_boy, na.rm = TRUE), 1)
+  )
+
+# Create table data for all months
+all_months <- levels(hh_data$survey_month)
+
+metrics <- c("% HH w/ school-age", "Avg days missed/child", "% HH w/ >0 days missed",
+             "Avg days missed/child (if >0)", "Avg days missed/girl (if >0)", "Avg days missed/boy (if >0)")
+
+table_long <- data.frame(
+  survey_month = rep(factor(all_months, levels = all_months), length(metrics)),
+  metric = rep(metrics, each = length(all_months)),
+  value = NA_character_
+)
+
+for (i in 1:nrow(table_long)) {
+  m <- as.character(table_long$survey_month[i])
+  metric <- table_long$metric[i]
+  
+  stats1 <- school_stats %>% filter(survey_month == m)
+  stats2 <- school_missed_stats %>% filter(survey_month == m)
+  
+  if (metric == "% HH w/ school-age") {
+    table_long$value[i] <- if (nrow(stats1) > 0) paste0(stats1$pct_with_children, "%") else "-"
+  } else if (metric == "Avg days missed/child") {
+    table_long$value[i] <- if (nrow(stats2) > 0 && !is.na(stats2$avg_days_per_child)) as.character(stats2$avg_days_per_child) else "-"
+  } else if (metric == "% HH w/ >0 days missed") {
+    table_long$value[i] <- if (nrow(stats2) > 0 && !is.na(stats2$pct_missed)) paste0(stats2$pct_missed, "%") else "-"
+  } else if (metric == "Avg days missed/child (if >0)") {
+    table_long$value[i] <- if (nrow(stats2) > 0 && !is.na(stats2$avg_days_per_child_nonzero)) as.character(stats2$avg_days_per_child_nonzero) else "-"
+  } else if (metric == "Avg days missed/girl (if >0)") {
+    table_long$value[i] <- if (nrow(stats2) > 0 && !is.na(stats2$avg_days_per_girl_nonzero)) as.character(stats2$avg_days_per_girl_nonzero) else "-"
+  } else if (metric == "Avg days missed/boy (if >0)") {
+    table_long$value[i] <- if (nrow(stats2) > 0 && !is.na(stats2$avg_days_per_boy_nonzero)) as.character(stats2$avg_days_per_boy_nonzero) else "-"
+  }
+}
+
+table_long$metric <- factor(table_long$metric, levels = metrics)
+
+# Create table plot
+table_plot <- ggplot(table_long, aes(x = 0.5, y = metric, label = value)) +
+  geom_text(size = 2.5) +
+  facet_wrap(~survey_month, nrow = 1, drop = FALSE) +
+  scale_y_discrete(limits = rev(levels(table_long$metric))) +
+  labs(x = NULL, y = NULL) +
+  theme_void() +
+  theme(strip.text = element_blank(),
+        axis.text.y = element_text(size = 7, hjust = 1),
+        plot.margin = margin(5, 5, 0, 5))
+
+# Create clustered bar chart
+bar_plot <- school_missed_stats %>%
+  select(survey_month, 
+         `All Children` = avg_days_per_child_nonzero, 
+         `Boys` = avg_days_per_boy_nonzero, 
+         `Girls` = avg_days_per_girl_nonzero) %>%
+  pivot_longer(-survey_month, names_to = "group", values_to = "days") %>%
+  mutate(group = factor(group, levels = c("All Children", "Boys", "Girls"))) %>%
+  ggplot(aes(x = survey_month, y = days, fill = group)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+  geom_text(aes(label = days), position = position_dodge(width = 0.7), vjust = -0.5, size = 3) +
+  scale_x_discrete(drop = FALSE) +
+  scale_fill_manual(values = c("All Children" = "grey60", "Boys" = "steelblue", "Girls" = "firebrick")) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+  labs(x = NULL, y = "Avg Days Missed per Child", fill = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        plot.margin = margin(0, 5, 5, 5))
+
+# Align and combine
+plot_grid(
+  textGrob("School Days Missed Due to Water Collection", gp = gpar(fontsize = 14, fontface = "bold")),
+  table_plot,
+  bar_plot,
+  ncol = 1,
+  rel_heights = c(0.08, 0.24, 0.68),
+  align = "v",
+  axis = "lr"
+)
+```
+
+For a household where only boys missed school (say 3 boys missed 6 days, plus 2 girls missed 0 days): days_per_child = 6 / 5 = 1.2, but days_per_boy = 6 / 3 = 2.0, and that household is excluded from days_per_girl entirely since girls_late_school is 0.
+
+## Danger from Environment
+```{r}
+# Prepare danger data for both genders
+danger_data <- hh_data %>%
+  filter(!is.na(community)) %>%
+  select(survey_month, women_danger_environment, men_danger_environment) %>%
+  pivot_longer(cols = c(women_danger_environment, men_danger_environment),
+               names_to = "gender",
+               values_to = "danger_level") %>%
+  mutate(gender = ifelse(gender == "women_danger_environment", "Women", "Men")) %>%
+  filter(!is.na(danger_level)) %>%
+  mutate(danger_level = factor(danger_level, 
+                               levels = c("Never (0 times)", "Rarely (1-2 times)", 
+                                          "Sometimes (3-10 times)", "Often (11-20 times)", 
+                                          "Always (More than 20 times)", "Don't know", 
+                                          "Not Applicable/ I don't have this")))
+# Calculate percentages
+danger_summary <- danger_data %>%
+  count(survey_month, gender, danger_level) %>%
+  group_by(survey_month, gender) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup()
+danger_summary %>%
+  ggplot(aes(x = gender, y = pct, fill = danger_level)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = n), 
+            position = position_stack(vjust = 0.5), 
+            size = 3, color = "white") +
+  facet_wrap(~survey_month, nrow = 1, drop = FALSE) +
+  scale_fill_manual(values = c(
+    "Never (0 times)" = "forestgreen",
+    "Rarely (1-2 times)" = "yellowgreen",
+    "Sometimes (3-10 times)" = "gold",
+    "Often (11-20 times)" = "orange",
+    "Always (More than 20 times)" = "red",
+    "Don't know" = "grey70",
+    "Not Applicable/ I don't have this" = "grey40"
+  ), na.translate = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  labs(x = NULL, y = NULL, fill = NULL,
+       title = "Danger in Environment While Collecting Water") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "bottom",
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
+```
+
+## Danger from People
+
+```{r}
+# Prepare danger people data for both genders
+danger_people_data <- hh_data %>%
+  filter(!is.na(community)) %>%
+  select(survey_month, women_danger_people, men_danger_people) %>%
+  pivot_longer(cols = c(women_danger_people, men_danger_people),
+               names_to = "gender",
+               values_to = "danger_level") %>%
+  mutate(gender = ifelse(gender == "women_danger_people", "Women", "Men")) %>%
+  filter(!is.na(danger_level)) %>%
+  mutate(danger_level = factor(danger_level, 
+                               levels = c("Never (0 times)", "Rarely (1-2 times)", 
+                                          "Sometimes (3-10 times)", "Often (11-20 times)", 
+                                          "Always (More than 20 times)", "Don't know", 
+                                          "Not Applicable/ I don't have this")))
+# Calculate percentages
+danger_people_summary <- danger_people_data %>%
+  count(survey_month, gender, danger_level) %>%
+  group_by(survey_month, gender) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup()
+danger_people_summary %>%
+  ggplot(aes(x = gender, y = pct, fill = danger_level)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = n), 
+            position = position_stack(vjust = 0.5), 
+            size = 3, color = "white") +
+  facet_wrap(~survey_month, nrow = 1, drop = FALSE) +
+  scale_fill_manual(values = c(
+    "Never (0 times)" = "forestgreen",
+    "Rarely (1-2 times)" = "yellowgreen",
+    "Sometimes (3-10 times)" = "gold",
+    "Often (11-20 times)" = "orange",
+    "Always (More than 20 times)" = "red",
+    "Don't know" = "grey70",
+    "Not Applicable/ I don't have this" = "grey40"
+  ), na.translate = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  labs(x = NULL, y = NULL, fill = NULL,
+       title = "Danger from People While Collecting Water") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "bottom",
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
+```
+
+## Bullying
+
+```{r}
+# Prepare bullying data for both sources
+bullying_data <- hh_data %>%
+  filter(!is.na(community)) %>%
+  select(survey_month, women_bullying_owner, women_bullying_others) %>%
+  pivot_longer(cols = c(women_bullying_owner, women_bullying_others),
+               names_to = "bullying_source",
+               values_to = "bullying_level") %>%
+  mutate(bullying_source = ifelse(bullying_source == "women_bullying_owner", 
+                                  "From owner", "From Others")) %>%
+  filter(!is.na(bullying_level)) %>%
+  mutate(bullying_level = factor(bullying_level, 
+                                 levels = c("Never (0 times)", "Rarely (1-2 times)", 
+                                            "Sometimes (3-10 times)", "Often (11-20 times)", 
+                                            "Always (More than 20 times)", "Don't know", 
+                                            "Not Applicable/ I don't have this")))
+# Calculate percentages
+bullying_summary <- bullying_data %>%
+  count(survey_month, bullying_source, bullying_level) %>%
+  group_by(survey_month, bullying_source) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup()
+bullying_summary %>%
+  ggplot(aes(x = bullying_source, y = pct, fill = bullying_level)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = n), 
+            position = position_stack(vjust = 0.5), 
+            size = 3, color = "white") +
+  facet_wrap(~survey_month, nrow = 1, drop = FALSE) +
+  scale_fill_manual(values = c(
+    "Never (0 times)" = "forestgreen",
+    "Rarely (1-2 times)" = "yellowgreen",
+    "Sometimes (3-10 times)" = "gold",
+    "Often (11-20 times)" = "orange",
+    "Always (More than 20 times)" = "red",
+    "Don't know" = "grey70",
+    "Not Applicable/ I don't have this" = "grey40"
+  ), na.translate = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%")) +
+  labs(x = NULL, y = NULL, fill = NULL,
+       title = "Bullying While Collecting Water") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "bottom",
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE))
+```
+
+# Water and Health
+## Stored Water
+```{r}
+# Set y-axis limit
+stored_limit <- 50
+
+# Calculate monthly means and counts - arrange by month order
+stored_summary <- hh_data %>%
+  filter(!is.na(stored_amount), !is.na(community)) %>%
+  mutate(stored_amount = pmin(stored_amount, stored_limit)) %>%
+  group_by(survey_month) %>%
+  summarise(mean_stored = mean(stored_amount, na.rm = TRUE),
+            n = n()) %>%
+  arrange(survey_month)
+
+# Create labels with counts
+month_labels <- stored_summary %>%
+  mutate(label = paste0(survey_month, "\n(n=", n, ")")) %>%
+  pull(label, name = survey_month)
+
+hh_data %>%
+  filter(!is.na(stored_amount), !is.na(community)) %>%
+  mutate(stored_amount = pmin(stored_amount, stored_limit)) %>%
+  ggplot(aes(x = stored_amount, y = survey_month)) +
+  geom_density_ridges(fill = "grey70", alpha = 0.5, scale = 1.2) +
+  geom_point(data = stored_summary, aes(x = mean_stored, y = survey_month, color = "Mean"), 
+             size = 3, inherit.aes = FALSE) +
+  geom_path(data = stored_summary, aes(x = mean_stored, y = as.numeric(survey_month), color = "Mean", group = 1),
+            linewidth = 1.2, inherit.aes = FALSE) +
+  geom_text(data = stored_summary, aes(x = mean_stored, y = survey_month, label = round(mean_stored, 1)),
+            vjust = -1, size = 3, inherit.aes = FALSE) +
+  scale_color_manual(values = c("Mean" = "red")) +
+  scale_x_continuous(limits = c(0, stored_limit),
+                     breaks = seq(0, stored_limit, 10),
+                     labels = c("0", "10", "20", "30", "40", paste0(stored_limit, "+"))) +
+  scale_y_discrete(drop = FALSE, labels = month_labels) +
+  coord_flip() +
+  labs(x = "Stored Water Amount (Jerrycans)", y = NULL, color = NULL, 
+       title = "Stored Water Amount Distribution") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "top",
+        axis.text.x = element_text(hjust = 0))
+```
+
+## Injury Rate from Water
+
+```{r}
+hh_data %>%
+  filter(!is.na(injuries_water), !is.na(community), !is.na(hh_size), hh_size > 0) %>%
+  group_by(survey_month) %>%
+  summarise(
+    total_injuries = sum(injuries_water, na.rm = TRUE),
+    total_pop = sum(hh_size, na.rm = TRUE),
+    rate = round(total_injuries / total_pop * 100, 1),
+    n = n()
+  ) %>%
+  ggplot(aes(x = survey_month, y = rate)) +
+  geom_col(fill = "grey60", width = 0.6) +
+  geom_text(aes(label = paste0(rate, "%")), vjust = -0.5, size = 3) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)), labels = function(x) paste0(x, "%")) +
+  labs(x = NULL, y = "Injury Rate", 
+       title = "Individual Injury Rate from Water Collection") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Sick from Water
+```{r}
+# Calculate all monthly stats
+sick_stats <- hh_data %>%
+  filter(!is.na(community), !is.na(sick_water), !is.na(hh_size), hh_size > 0) %>%
+  group_by(survey_month) %>%
+  summarise(
+    total_hh = n(),
+    hh_with_sick = sum(sick_water > 0, na.rm = TRUE),
+    pct_hh_sick = round(hh_with_sick / total_hh * 100, 1),
+    total_pop = sum(hh_size, na.rm = TRUE),
+    total_sick = sum(sick_water, na.rm = TRUE),
+    pct_pop_sick = round(total_sick / total_pop * 100, 1),
+    avg_sick_per_hh = round(mean(sick_water[sick_water > 0], na.rm = TRUE), 1)
+  )
+
+# Create table data for all months
+all_months <- levels(hh_data$survey_month)
+
+table_long <- data.frame(
+  survey_month = rep(factor(all_months, levels = all_months), 3),
+  metric = rep(c("% Pop Sick", "% of HHs sick", "Avg sick/HH (if >0)"), each = length(all_months)),
+  value = NA_character_
+)
+
+for (i in 1:nrow(table_long)) {
+  m <- as.character(table_long$survey_month[i])
+  metric <- table_long$metric[i]
+  
+  stats <- sick_stats %>% filter(survey_month == m)
+  
+  if (metric == "% Pop Sick") {
+    table_long$value[i] <- if (nrow(stats) > 0 && !is.na(stats$pct_pop_sick)) paste0(stats$pct_pop_sick, "%") else "-"
+  } else if (metric == "% of HHs sick") {
+    table_long$value[i] <- if (nrow(stats) > 0) paste0(stats$pct_hh_sick, "%") else "-"
+  } else {
+    table_long$value[i] <- if (nrow(stats) > 0 && !is.na(stats$avg_sick_per_hh)) as.character(stats$avg_sick_per_hh) else "-"
+  }
+}
+
+table_long$metric <- factor(table_long$metric, levels = c("% Pop Sick", "% of HHs sick", "Avg sick/HH (if >0)"))
+
+# Create table plot using ggplot with facets
+table_plot <- ggplot(table_long, aes(x = 0.5, y = metric, label = value)) +
+  geom_text(size = 2.5) +
+  facet_wrap(~survey_month, nrow = 1, drop = FALSE) +
+  scale_y_discrete(limits = rev(levels(table_long$metric))) +
+  labs(x = NULL, y = NULL) +
+  theme_void() +
+  theme(strip.text = element_blank(),
+        axis.text.y = element_text(size = 7, hjust = 1),
+        plot.margin = margin(5, 5, 0, 5))
+
+# Calculate mean percent sick per household (only >0) and counts - arrange by month order
+sick_pct_mean <- hh_data %>%
+  filter(!is.na(community), !is.na(sick_water), !is.na(hh_size), hh_size > 0, sick_water > 0) %>%
+  mutate(pct_hh_sick = sick_water / hh_size * 100,
+         pct_hh_sick = pmin(pct_hh_sick, 100)) %>%
+  group_by(survey_month) %>%
+  summarise(mean_pct_sick = mean(pct_hh_sick, na.rm = TRUE),
+            n = n()) %>%
+  arrange(survey_month)
+
+# Create labels with counts
+month_labels <- sick_pct_mean %>%
+  mutate(label = paste0(survey_month, "\n(n=", n, ")")) %>%
+  pull(label, name = survey_month)
+
+# Create density ridge plot with connected points and labels (only >0)
+density_plot <- hh_data %>%
+  filter(!is.na(community), !is.na(sick_water), !is.na(hh_size), hh_size > 0, sick_water > 0) %>%
+  mutate(pct_hh_sick = sick_water / hh_size * 100,
+         pct_hh_sick = pmin(pct_hh_sick, 100)) %>%
+  ggplot(aes(x = pct_hh_sick, y = survey_month)) +
+  geom_density_ridges(fill = "grey70", alpha = 0.5, scale = 1.2) +
+  geom_point(data = sick_pct_mean, aes(x = mean_pct_sick, y = survey_month, color = "Mean (if >0)"), 
+             size = 3, inherit.aes = FALSE) +
+  geom_path(data = sick_pct_mean, aes(x = mean_pct_sick, y = as.numeric(survey_month), color = "Mean (if >0)", group = 1),
+            linewidth = 1.2, inherit.aes = FALSE) +
+  geom_text(data = sick_pct_mean, aes(x = mean_pct_sick, y = survey_month, label = paste0(round(mean_pct_sick, 1), "%")),
+            vjust = -1, size = 3, inherit.aes = FALSE) +
+  scale_color_manual(values = c("Mean (if >0)" = "red")) +
+  scale_x_continuous(limits = c(0, 100), breaks = seq(0, 100, 25), labels = c("0%", "25%", "50%", "75%", "100%")) +
+  scale_y_discrete(drop = FALSE, labels = month_labels) +
+  coord_flip() +
+  labs(x = "% of Household Sick from Water (if >0)", y = NULL, color = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(hjust = 0),
+        plot.margin = margin(0, 5, 5, 5))
+
+# Align and combine
+plot_grid(
+  textGrob("Household Members Sick from Water", gp = gpar(fontsize = 14, fontface = "bold")),
+  table_plot,
+  density_plot,
+  ncol = 1,
+  rel_heights = c(0.08, 0.15, 0.77),
+  align = "v",
+  axis = "lr"
+)
+```
+
+## Treatment Type
+```{r}
+# Calculate treatment type percentages by month
+treatment_monthly <- hh_data %>%
+  filter(!is.na(community)) %>%
+  mutate(treatment_none = ifelse(
+    treatment_chlorine == "No" & 
+      treatment_simplefilter == "No" & 
+      treatment_advancefilter == "No" & 
+      treatment_boil == "No" & 
+      treatment_settle == "No" & 
+      treatment_other == "No", "Yes", "No"
+  )) %>%
+  group_by(survey_month) %>%
+  mutate(total_hh = n()) %>%
+  ungroup() %>%
+  summarise(
+    None = sum(treatment_none == "Yes", na.rm = TRUE),
+    Chlorine = sum(treatment_chlorine == "Yes", na.rm = TRUE),
+    `Simple Filter` = sum(treatment_simplefilter == "Yes", na.rm = TRUE),
+    `Advanced Filter` = sum(treatment_advancefilter == "Yes", na.rm = TRUE),
+    Boil = sum(treatment_boil == "Yes", na.rm = TRUE),
+    Settle = sum(treatment_settle == "Yes", na.rm = TRUE),
+    Other = sum(treatment_other == "Yes", na.rm = TRUE),
+    total_hh = n(),
+    .by = survey_month
+  ) %>%
+  pivot_longer(cols = c(None, Chlorine, `Simple Filter`, `Advanced Filter`, Boil, Settle, Other),
+               names_to = "treatment_type",
+               values_to = "count") %>%
+  mutate(pct = count / total_hh * 100,
+         treatment_type = factor(treatment_type, 
+                                 levels = c("None", "Chlorine", "Boil", "Settle", "Simple Filter", "Advanced Filter", "Other")))
+treatment_monthly %>%
+  ggplot(aes(x = survey_month, y = pct, color = treatment_type, group = treatment_type)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  geom_text(aes(label = paste0(round(pct, 0), "%")), vjust = -0.8, size = 2.5, show.legend = FALSE) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"), expand = expansion(mult = c(0, 0.15))) +
+  scale_color_manual(values = c(
+    "None" = "grey70",
+    "Chlorine" = "gold",
+    "Boil" = "firebrick",
+    "Settle" = "sienna",
+    "Simple Filter" = "lightblue",
+    "Advanced Filter" = "navy",
+    "Other" = "black"
+  )) +
+  labs(x = NULL, y = NULL, color = NULL, 
+       title = "Water Treatment Methods") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Water-Related Diseases
+```{r}
+# Calculate disease percentages by month
+disease_monthly <- hh_data %>%
+  filter(!is.na(community)) %>%
+  group_by(survey_month) %>%
+  mutate(total_hh = n()) %>%
+  ungroup() %>%
+  summarise(
+    Malaria = sum(disease_malaria == "Yes", na.rm = TRUE),
+    Dengue = sum(disease_dengue == "Yes", na.rm = TRUE),
+    Diarrhea = sum(disease_diarrhea == "Yes", na.rm = TRUE),
+    Typhoid = sum(disease_typhoid == "Yes", na.rm = TRUE),
+    `Skin Rashes` = sum(disease_skinrashes == "Yes", na.rm = TRUE),
+    `Eye Infections` = sum(disease_eyeinfections == "Yes", na.rm = TRUE),
+    None = sum(disease_none == "Yes", na.rm = TRUE),
+    total_hh = n(),
+    .by = survey_month
+  ) %>%
+  pivot_longer(cols = c(Malaria, Dengue, Diarrhea, Typhoid, `Skin Rashes`, `Eye Infections`, None),
+               names_to = "disease_type",
+               values_to = "count") %>%
+  mutate(pct = count / total_hh * 100,
+         disease_type = factor(disease_type, 
+                               levels = c("Malaria", "Typhoid", "Diarrhea", "Skin Rashes", "Dengue", "Eye Infections", "None")))
+disease_monthly %>%
+  ggplot(aes(x = survey_month, y = pct, color = disease_type, group = disease_type)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  geom_text(aes(label = paste0(round(pct, 0), "%")), vjust = -0.8, size = 2.5, show.legend = FALSE) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(labels = function(x) paste0(x, "%"), expand = expansion(mult = c(0, 0.15))) +
+  scale_color_manual(values = c(
+    "Malaria" = "darkred",
+    "Typhoid" = "purple",
+    "Diarrhea" = "sienna4",
+    "Skin Rashes" = "lightcoral",
+    "Dengue" = "forestgreen",
+    "Eye Infections" = "steelblue",
+    "None" = "grey50"
+  )) +
+  labs(x = NULL, y = NULL, color = NULL, 
+       title = "Water-Related Diseases") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Standing Water
+
+```{r}
+hh_data %>%
+  filter(!is.na(standing_water), !is.na(community)) %>%
+  count(survey_month, standing_water) %>%
+  group_by(survey_month) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(standing_water = factor(standing_water, levels = c("No", "Yes"))) %>%
+  ggplot(aes(x = survey_month, y = pct, fill = standing_water)) +
+  geom_col(position = "stack") +
+  geom_text(aes(label = paste0(round(pct, 0), "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 3) +
+  scale_x_discrete(drop = FALSE) +
+  scale_y_continuous(limits = c(0, 100),
+                     breaks = seq(0, 100, 20),
+                     labels = function(x) paste0(x, "%")) +
+  scale_fill_manual(values = c("No" = "mediumseagreen", "Yes" = "firebrick")) +
+  labs(x = NULL, y = NULL, fill = NULL,
+       title = "Standing Water Near Home") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
