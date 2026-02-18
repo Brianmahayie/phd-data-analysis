@@ -59,6 +59,7 @@ jobs:
             any::ggridges
             any::ggalluvial
             any::mapview
+            any::leaflet
             any::RColorBrewer
 
       - name: Render site
