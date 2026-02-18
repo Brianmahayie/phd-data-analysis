@@ -17,6 +17,7 @@ docs/
 # Generated files (regenerated on knit/render)
 rosm.cache/
 *_files/
+*_cache/
 
 # OS
 .DS_Store
