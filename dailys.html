@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+
+<title>Survey Daily Report</title>
+
+<script src="site_libs/header-attrs-2.30/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="site_libs/lightable-0.0.1/lightable.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">PhD Data Analysis</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="dailys.html">Daily Report</a>
+</li>
+<li>
+  <a href="hh_analysis.html">Household Analysis</a>
+</li>
+<li>
+  <a href="ws_analysis.html">Water Source Analysis</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Survey Daily Report</h1>
+<h4 class="date">February 18, 2026 10:44</h4>
+
+</div>
+
+
+<p><strong>Total</strong>: 638/691 surveys completed,
+<strong>53</strong> remaining</p>
+<p><strong>Abdulai K</strong>: 168/170 surveys completed,
+<strong>2</strong> remaining</p>
+<p><strong>Jamiatu</strong>: 152/176 surveys completed,
+<strong>24</strong> remaining</p>
+<p><strong>Boboieh</strong>: 157/175 surveys completed,
+<strong>18</strong> remaining</p>
+<p><strong>Musa</strong>: 161/170 surveys completed, <strong>9</strong>
+remaining</p>
+<div id="recent-performance" class="section level1">
+<h1>Recent Performance</h1>
+<table class="table table-striped table-hover" style="width: auto !important; ">
+<thead>
+<tr>
+<th style="text-align:left;position: sticky; top:0; background-color: #FFFFFF;white-space: nowrap;">
+Surveyor
+</th>
+<th style="text-align:center;position: sticky; top:0; background-color: #FFFFFF;white-space: nowrap;">
+Totals
+</th>
+<th style="text-align:center;position: sticky; top:0; background-color: #FFFFFF;white-space: nowrap;">
+Wed Feb 18
+</th>
+<th style="text-align:center;position: sticky; top:0; background-color: #FFFFFF;white-space: nowrap;">
+Tue Feb 17
+</th>
+<th style="text-align:center;position: sticky; top:0; background-color: #FFFFFF;white-space: nowrap;">
+Sun Feb 15
+</th>
+<th style="text-align:center;position: sticky; top:0; background-color: #FFFFFF;white-space: nowrap;">
+Fri Feb 13
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;">
+GRAND TOTAL
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;border-right: 2px solid black; white-space: nowrap; vertical-align: middle;">
+Week: 162 hh / 1 ws<br>Month: 638 hh / 1 ws
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+<span style="background-color: #ffcccc; display: block;">(1 hh / 0
+ws)</span>
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+<span style="background-color: #ccffcc; display: block;">(14 hh / 0
+ws)</span>
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;border-left: 2px solid black; white-space: nowrap; vertical-align: middle;">
+(10 hh / 0 ws)
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+<span style="background-color: #ccffcc; display: block;">(25 hh / 0
+ws)</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Abdulai K
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;border-right: 2px solid black; white-space: nowrap; vertical-align: middle;">
+Week: 21 hh / 0 ws<br>Month: 135 hh / 0 ws
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;border-left: 2px solid black; white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+<span style="background-color: #ffcccc; display: block;">(5 hh / 0
+ws)</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Abdulai B
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;border-right: 2px solid black; white-space: nowrap; vertical-align: middle;">
+Week: 28 hh / 0 ws<br>Month: 33 hh / 0 ws
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;border-left: 2px solid black; white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+<span style="background-color: #ccffcc; display: block;">(12 hh / 0
+ws)</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;">
+Portee Rokupa Total
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;border-right: 2px solid black; white-space: nowrap; vertical-align: middle;">
+Week: 49 hh / 0 ws<br>Month: 168 hh / 0 ws
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;border-left: 2px solid black; white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+<span style="background-color: #ccffcc; display: block;">(17 hh / 0
+ws)</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Jamiatu
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;border-right: 2px solid black; white-space: nowrap; vertical-align: middle;">
+Week: 19 hh / 0 ws<br>Month: 152 hh / 0 ws
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;border-left: 2px solid black; white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Boboieh
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;border-right: 2px solid black; white-space: nowrap; vertical-align: middle;">
+Week: 53 hh / 1 ws<br>Month: 157 hh / 1 ws
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+<span style="background-color: #ffcccc; display: block;">(1 hh / 0
+ws)</span>
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+<span style="background-color: #ccffcc; display: block;">(14 hh / 0
+ws)</span>
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;border-left: 2px solid black; white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+(8 hh / 0 ws)
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;">
+Dworzark Total
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;border-right: 2px solid black; white-space: nowrap; vertical-align: middle;">
+Week: 72 hh / 1 ws<br>Month: 309 hh / 1 ws
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+<span style="background-color: #ffcccc; display: block;">(1 hh / 0
+ws)</span>
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+<span style="background-color: #ccffcc; display: block;">(14 hh / 0
+ws)</span>
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;border-left: 2px solid black; white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+(8 hh / 0 ws)
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Musa
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;border-right: 2px solid black; white-space: nowrap; vertical-align: middle;">
+Week: 41 hh / 0 ws<br>Month: 161 hh / 0 ws
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;border-left: 2px solid black; white-space: nowrap; vertical-align: middle;">
+(10 hh / 0 ws)
+</td>
+<td style="text-align:center;white-space: nowrap; vertical-align: middle;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;">
+Cockle Bay Total
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;border-right: 2px solid black; white-space: nowrap; vertical-align: middle;">
+Week: 41 hh / 0 ws<br>Month: 161 hh / 0 ws
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;border-left: 2px solid black; white-space: nowrap; vertical-align: middle;">
+(10 hh / 0 ws)
+</td>
+<td style="text-align:center;font-weight: bold;background-color: rgba(240, 240, 240, 255) !important;white-space: nowrap; vertical-align: middle;white-space: nowrap; vertical-align: middle;">
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="mapping" class="section level1">
+<h1>Mapping</h1>
+<div id="abdulai-k" class="section level2">
+<h2>Abdulai K</h2>
+<p><img src="dailys_files/figure-html/map-abdulai-k-1.png" alt="" width="480" /></p>
+</div>
+<div id="jamiatu" class="section level2">
+<h2>Jamiatu</h2>
+<p><img src="dailys_files/figure-html/map-jamiatu-1.png" alt="" width="768" /></p>
+</div>
+<div id="boboieh" class="section level2">
+<h2>Boboieh</h2>
+<p><img src="dailys_files/figure-html/map-boboieh-1.png" alt="" width="768" /></p>
+</div>
+<div id="musa" class="section level2">
+<h2>Musa</h2>
+<p><img src="dailys_files/figure-html/map-musa-1.png" alt="" width="480" /></p>
+</div>
+</div>
+<div id="missing-hhs" class="section level1">
+<h1>Missing HHs</h1>
+<div id="abdulai-k-2-remaining" class="section level2">
+<h2>Abdulai K (2 remaining)</h2>
+<table class="table table-striped table-hover" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+HHID
+</th>
+<th style="text-align:left;">
+Zone
+</th>
+<th style="text-align:left;">
+Name
+</th>
+<th style="text-align:left;">
+Number
+</th>
+<th style="text-align:left;">
+Last Survey
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+P068
+</td>
+<td style="text-align:left;">
+Portee Wharf
+</td>
+<td style="text-align:left;">
+Hawanatu Sankoh
+</td>
+<td style="text-align:left;">
+077804173
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+P120
+</td>
+<td style="text-align:left;">
+Rokupa Wharf
+</td>
+<td style="text-align:left;">
+Memunatu Kamara
+</td>
+<td style="text-align:left;">
+22b Mabel Brown street
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="jamiatu-24-remaining" class="section level2">
+<h2>Jamiatu (24 remaining)</h2>
+<table class="table table-striped table-hover" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+HHID
+</th>
+<th style="text-align:left;">
+Zone
+</th>
+<th style="text-align:left;">
+Name
+</th>
+<th style="text-align:left;">
+Number
+</th>
+<th style="text-align:left;">
+Last Survey
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+D345
+</td>
+<td style="text-align:left;">
+Argentina
+</td>
+<td style="text-align:left;">
+Yeabu Sesay
+</td>
+<td style="text-align:left;">
+088592031
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D177
+</td>
+<td style="text-align:left;">
+Cameroon
+</td>
+<td style="text-align:left;">
+Mariama Kargbo
+</td>
+<td style="text-align:left;">
+030353140
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D158
+</td>
+<td style="text-align:left;">
+France
+</td>
+<td style="text-align:left;">
+Margaret Y Samura
+</td>
+<td style="text-align:left;">
+088708998
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D214
+</td>
+<td style="text-align:left;">
+France
+</td>
+<td style="text-align:left;">
+Ruth Allieu
+</td>
+<td style="text-align:left;">
+076808998
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D215
+</td>
+<td style="text-align:left;">
+France
+</td>
+<td style="text-align:left;">
+Juliet Kassoh
+</td>
+<td style="text-align:left;">
+030795486
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D219
+</td>
+<td style="text-align:left;">
+France
+</td>
+<td style="text-align:left;">
+Isha Sesay
+</td>
+<td style="text-align:left;">
+077949946
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D148
+</td>
+<td style="text-align:left;">
+Holland
+</td>
+<td style="text-align:left;">
+Musu Kandeh
+</td>
+<td style="text-align:left;">
+075074747
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D176
+</td>
+<td style="text-align:left;">
+Holland
+</td>
+<td style="text-align:left;">
+Fudia sesay
+</td>
+<td style="text-align:left;">
+074733131
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D183
+</td>
+<td style="text-align:left;">
+Holland
+</td>
+<td style="text-align:left;">
+Amara B Sesay
+</td>
+<td style="text-align:left;">
+031106589
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D283
+</td>
+<td style="text-align:left;">
+Holland
+</td>
+<td style="text-align:left;">
+Ibrahim Mondeh
+</td>
+<td style="text-align:left;">
+079088708
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D206
+</td>
+<td style="text-align:left;">
+Morocco
+</td>
+<td style="text-align:left;">
+Luciatu Kamara
+</td>
+<td style="text-align:left;">
+088128347
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D239
+</td>
+<td style="text-align:left;">
+Morocco
+</td>
+<td style="text-align:left;">
+Abubakarr Nyandemoh
+</td>
+<td style="text-align:left;">
+073514890
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D260
+</td>
+<td style="text-align:left;">
+Morocco
+</td>
+<td style="text-align:left;">
+Fatima Bockarie
+</td>
+<td style="text-align:left;">
+073724579
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D318
+</td>
+<td style="text-align:left;">
+Morocco
+</td>
+<td style="text-align:left;">
+Tira Kamara
+</td>
+<td style="text-align:left;">
+Without phone at the moment
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D048
+</td>
+<td style="text-align:left;">
+Nigeria
+</td>
+<td style="text-align:left;">
+Fatamata Dumbuya
+</td>
+<td style="text-align:left;">
+032606349
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D078
+</td>
+<td style="text-align:left;">
+Spain
+</td>
+<td style="text-align:left;">
+Bashiru Kanu
+</td>
+<td style="text-align:left;">
+079352076
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D084
+</td>
+<td style="text-align:left;">
+USA
+</td>
+<td style="text-align:left;">
+Elizabeth Bangura
+</td>
+<td style="text-align:left;">
+078874734
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D261
+</td>
+<td style="text-align:left;">
+USA
+</td>
+<td style="text-align:left;">
+Mariama Jalloh
+</td>
+<td style="text-align:left;">
+090302800
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D262
+</td>
+<td style="text-align:left;">
+USA
+</td>
+<td style="text-align:left;">
+Salamatu Turay
+</td>
+<td style="text-align:left;">
+075648049
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D293
+</td>
+<td style="text-align:left;">
+USA
+</td>
+<td style="text-align:left;">
+Jaria Mansaray
+</td>
+<td style="text-align:left;">
+099298417
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D316
+</td>
+<td style="text-align:left;">
+USA
+</td>
+<td style="text-align:left;">
+Mabinty K Turay
+</td>
+<td style="text-align:left;">
+072724476
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D329
+</td>
+<td style="text-align:left;">
+USA
+</td>
+<td style="text-align:left;">
+Emma Kamara
+</td>
+<td style="text-align:left;">
+077485410
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D331
+</td>
+<td style="text-align:left;">
+USA
+</td>
+<td style="text-align:left;">
+Susan Momoh
+</td>
+<td style="text-align:left;">
+033099036/077909785
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D333
+</td>
+<td style="text-align:left;">
+USA
+</td>
+<td style="text-align:left;">
+Kabba Koroma
+</td>
+<td style="text-align:left;">
+034800951
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="boboieh-18-remaining" class="section level2">
+<h2>Boboieh (18 remaining)</h2>
+<table class="table table-striped table-hover" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+HHID
+</th>
+<th style="text-align:left;">
+Zone
+</th>
+<th style="text-align:left;">
+Name
+</th>
+<th style="text-align:left;">
+Number
+</th>
+<th style="text-align:left;">
+Last Survey
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+D124
+</td>
+<td style="text-align:left;">
+Brazil
+</td>
+<td style="text-align:left;">
+Mattu Fayai
+</td>
+<td style="text-align:left;">
+034-915-968
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D188
+</td>
+<td style="text-align:left;">
+Brazil
+</td>
+<td style="text-align:left;">
+Isatu Wilkinson
+</td>
+<td style="text-align:left;">
+U M C C compound
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D192
+</td>
+<td style="text-align:left;">
+Brazil
+</td>
+<td style="text-align:left;">
+Christiana Cole
+</td>
+<td style="text-align:left;">
+5 George Brook, Dwazark
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D196
+</td>
+<td style="text-align:left;">
+Brazil
+</td>
+<td style="text-align:left;">
+Mariama Bah
+</td>
+<td style="text-align:left;">
+080-368-955
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D285
+</td>
+<td style="text-align:left;">
+Brazil
+</td>
+<td style="text-align:left;">
+Kadiatu Bangura
+</td>
+<td style="text-align:left;">
+088-838-534
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D240
+</td>
+<td style="text-align:left;">
+Italy
+</td>
+<td style="text-align:left;">
+Iye Boima
+</td>
+<td style="text-align:left;">
+076-535-670
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D241
+</td>
+<td style="text-align:left;">
+Italy
+</td>
+<td style="text-align:left;">
+Ismatu Nabieu Kalokoh
+</td>
+<td style="text-align:left;">
+030-752-486
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D242
+</td>
+<td style="text-align:left;">
+Italy
+</td>
+<td style="text-align:left;">
+Abibatu Mansaray
+</td>
+<td style="text-align:left;">
+099-147-140
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D249
+</td>
+<td style="text-align:left;">
+Italy
+</td>
+<td style="text-align:left;">
+Beatty Saffa
+</td>
+<td style="text-align:left;">
+088-175-299
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D252
+</td>
+<td style="text-align:left;">
+Italy
+</td>
+<td style="text-align:left;">
+Mabinty Kaloko
+</td>
+<td style="text-align:left;">
+074-244-667
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D257
+</td>
+<td style="text-align:left;">
+Italy
+</td>
+<td style="text-align:left;">
+Sinneh Turay
+</td>
+<td style="text-align:left;">
+088-455-006
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D269
+</td>
+<td style="text-align:left;">
+Italy
+</td>
+<td style="text-align:left;">
+Forrah Marah
+</td>
+<td style="text-align:left;">
+079-556-443
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D286
+</td>
+<td style="text-align:left;">
+Italy
+</td>
+<td style="text-align:left;">
+Mamie Kongboh
+</td>
+<td style="text-align:left;">
+030-761-492
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D321
+</td>
+<td style="text-align:left;">
+Italy
+</td>
+<td style="text-align:left;">
+Abie Kajue
+</td>
+<td style="text-align:left;">
+075-719-020
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D334
+</td>
+<td style="text-align:left;">
+Nigeria
+</td>
+<td style="text-align:left;">
+Mariatu Bangura
+</td>
+<td style="text-align:left;">
+088545729
+</td>
+<td style="text-align:left;">
+Nov
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D105
+</td>
+<td style="text-align:left;">
+Spain
+</td>
+<td style="text-align:left;">
+Fatmata Bangura
+</td>
+<td style="text-align:left;">
+109A upper George Brook
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D355
+</td>
+<td style="text-align:left;">
+Spain
+</td>
+<td style="text-align:left;">
+Agnes Kamara
+</td>
+<td style="text-align:left;">
+030503918
+</td>
+<td style="text-align:left;">
+Dec
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+D342
+</td>
+<td style="text-align:left;">
+NA
+</td>
+<td style="text-align:left;">
+Mrs seibiatu Turay
+</td>
+<td style="text-align:left;">
+030571443
+</td>
+<td style="text-align:left;">
+Nov
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="musa-9-remaining" class="section level2">
+<h2>Musa (9 remaining)</h2>
+<table class="table table-striped table-hover" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+HHID
+</th>
+<th style="text-align:left;">
+Zone
+</th>
+<th style="text-align:left;">
+Name
+</th>
+<th style="text-align:left;">
+Number
+</th>
+<th style="text-align:left;">
+Last Survey
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+C041
+</td>
+<td style="text-align:left;">
+Mafengbeh
+</td>
+<td style="text-align:left;">
+Madusu Wullarie
+</td>
+<td style="text-align:left;">
+088757836
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C068
+</td>
+<td style="text-align:left;">
+Mafengbeh
+</td>
+<td style="text-align:left;">
+Fatmata Kargbo
+</td>
+<td style="text-align:left;">
+077265315
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C070
+</td>
+<td style="text-align:left;">
+Mafengbeh
+</td>
+<td style="text-align:left;">
+Kadiatu Sesay
+</td>
+<td style="text-align:left;">
+077252391
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C162
+</td>
+<td style="text-align:left;">
+Mafengbeh
+</td>
+<td style="text-align:left;">
+Osman Darami
+</td>
+<td style="text-align:left;">
+079570333
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C163
+</td>
+<td style="text-align:left;">
+Mafengbeh
+</td>
+<td style="text-align:left;">
+Chief Pa Alimamy S Kargbo
+</td>
+<td style="text-align:left;">
+030769081
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C166
+</td>
+<td style="text-align:left;">
+Mafengbeh
+</td>
+<td style="text-align:left;">
+Aminata Kamara
+</td>
+<td style="text-align:left;">
+074999402
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C168
+</td>
+<td style="text-align:left;">
+Mafengbeh
+</td>
+<td style="text-align:left;">
+Fatmata Bangura (Fatu John)
+</td>
+<td style="text-align:left;">
+088095507
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C169
+</td>
+<td style="text-align:left;">
+Mafengbeh
+</td>
+<td style="text-align:left;">
+Tenneh Bangura
+</td>
+<td style="text-align:left;">
+075783341
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+C170
+</td>
+<td style="text-align:left;">
+Mafengbeh
+</td>
+<td style="text-align:left;">
+Isata Sesay
+</td>
+<td style="text-align:left;">
+031915929
+</td>
+<td style="text-align:left;">
+Jan
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3,h4,h5,h6",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
