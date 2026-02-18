@@ -14,7 +14,8 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, cache = FALSE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, cache = F)
+
 library(knitr)
 library(scales)
 library(kableExtra)
@@ -30,14 +31,10 @@ library(mapview)
 library(RColorBrewer)
 
 source("hh_cleanup.R")
+source("ws_cleanup.R")
 
 leones_to_usd <- 23.7
 Demographic_Summary_Month <- format(Sys.Date() %m-% months(1), "%b")
-
-score_vars <- c("hwise_worry_score", "hwise_interrupted_score", "hwise_clothes_score",
-                "hwise_schedule_score", "hwise_food_score", "hwise_hand_washing_score",
-                "hwise_body_washing_score", "hwise_drinking_score", "hwise_angry_score",
-                "hwise_thirsty_score", "hwise_no_water_score", "hwise_stigma_score")
 ```
 
 ```{r survey_counts}
@@ -364,6 +361,10 @@ hh_data %>%
 # HWISE
 ## Line Chart
 ```{r hwise_lines}
+score_vars <- c("hwise_worry_score", "hwise_interrupted_score", "hwise_clothes_score",
+                "hwise_schedule_score", "hwise_food_score", "hwise_hand_washing_score",
+                "hwise_body_washing_score", "hwise_drinking_score", "hwise_angry_score",
+                "hwise_thirsty_score", "hwise_no_water_score", "hwise_stigma_score")
 # Calculate monthly averages for individual HWISE variables
 hwise_monthly <- hh_data %>%
   filter(!is.na(community)) %>%
@@ -504,7 +505,7 @@ hh_data %>%
 
 ### Source Type
 
-```{r drink_source_type, cache = F}
+```{r drink_source_type, fig.height = 8}
 # Prepare data - all households with valid data, one row per hhid/month
 alluvial_data <- hh_data %>%
   filter(!is.na(drinking_source_type), !is.na(hhid), !is.na(survey_month)) %>%
@@ -513,6 +514,14 @@ alluvial_data <- hh_data %>%
   slice(1) %>%
   ungroup() %>%
   mutate(survey_month = factor(survey_month, levels = levels(hh_data$survey_month)))
+
+# Keep only hhids present in all months
+n_months <- n_distinct(alluvial_data$survey_month)
+
+alluvial_data <- alluvial_data %>%
+  group_by(hhid) %>%
+  filter(n_distinct(survey_month) == n_months) %>%
+  ungroup()
 
 # Define color mapping
 color_map <- c(
@@ -539,7 +548,8 @@ alluvial_data_prop <- alluvial_data %>%
 ggplot(alluvial_data_prop,
        aes(x = survey_month, stratum = drinking_source_type, alluvium = hhid,
            y = weight, fill = drinking_source_type)) +
-  geom_flow(stat = "alluvium", aes.flow = "forward", alpha = 0.6) +
+  geom_flow(stat = "flow", aes.flow = "forward", alpha = 0.6,
+            curve_type = "sine", width = 0.4) +
   geom_stratum(width = 0.4) +
   scale_x_discrete(drop = FALSE) +
   scale_y_continuous(labels = scales::percent_format()) +
@@ -681,7 +691,7 @@ hh_data %>%
 ## Domestic Source
 
 ### Source Type
-```{r domestic_source_type}
+```{r domestic_source_type, fig.height = 8}
 # Prepare data - all households with valid data, one row per hhid/month
 alluvial_domestic <- hh_data %>%
   filter(!is.na(domestic_source_type), !is.na(hhid), !is.na(survey_month)) %>%
@@ -690,6 +700,13 @@ alluvial_domestic <- hh_data %>%
   slice(1) %>%
   ungroup() %>%
   mutate(survey_month = factor(survey_month, levels = levels(hh_data$survey_month)))
+
+# Keep only hhids present in all months
+n_months_domestic <- n_distinct(alluvial_domestic$survey_month)
+alluvial_domestic <- alluvial_domestic %>%
+  group_by(hhid) %>%
+  filter(n_distinct(survey_month) == n_months_domestic) %>%
+  ungroup()
 
 # Define color mapping
 color_map_domestic <- c(
@@ -716,7 +733,8 @@ alluvial_domestic_prop <- alluvial_domestic %>%
 ggplot(alluvial_domestic_prop,
        aes(x = survey_month, stratum = domestic_source_type, alluvium = hhid,
            y = weight, fill = domestic_source_type)) +
-  geom_flow(stat = "alluvium", aes.flow = "forward", alpha = 0.6) +
+  geom_flow(stat = "flow", aes.flow = "forward", alpha = 0.6,
+            curve_type = "sine", width = 0.4) +
   geom_stratum(width = 0.4) +
   scale_x_discrete(drop = FALSE) +
   scale_y_continuous(labels = scales::percent_format()) +
@@ -829,47 +847,32 @@ hh_data %>%
         axis.text.x = element_text(hjust = 0))
 ```
 
-# HH-Source Connections (January)
+# HH-Source Connections
 
 ```{r, include=FALSE}
-# --- Household Data from hh_data ---
-hh_data_raw <- hh_data %>%
-  filter(survey_month == "Jan") %>%
+# --- Household Data: most recent survey per hhid ---
+hh_connection <- hh_data %>%
+  filter(!is.na(hhid), !is.na(gps_location)) %>%
+  group_by(hhid) %>%
+  arrange(desc(survey_date)) %>%
+  slice(1) %>%
+  ungroup() %>%
   separate(gps_location, into = c("hh_lat", "hh_lon", "hh_alt", "hh_acc"), 
            sep = " ", remove = FALSE, convert = TRUE) %>%
-  select(community, hh_lat, hh_lon, 
+  select(community, hhid, hh_lat, hh_lon, 
          drinking_source_type, drinking_source_selection,
          domestic_source_type, domestic_source_selection)
 
-# --- Water Source Data ---
-kobo_token <- Sys.getenv("KOBO_TOKEN")
-base_url <- "https://kf.kobotoolbox.org/api/v2/assets/"
-
-response_ws <- GET(
-  paste0(base_url, "aDnYgCWxBduEXrC6cFzCP2", "/data.json"),
-  add_headers(Authorization = paste("Token", kobo_token))
-)
-data_list_ws <- content(response_ws, as = "parsed", simplifyDataFrame = TRUE)
-ws_data_raw <- as.data.frame(data_list_ws$results)
-
-ws_uuid <- ws_data_raw[["_uuid"]]
-
-names(ws_data_raw) <- names(ws_data_raw) %>%
-  sub(".*/", "", .) %>%
-  sub("^_", "", .)
-ws_data_raw <- ws_data_raw[, !duplicated(names(ws_data_raw))]
-ws_data_raw$uuid <- ws_uuid
-
-ws_data_raw <- ws_data_raw %>%
-  filter(consent == "yes") %>%
+# --- Water Source Data: one row per wsid ---
+ws_connection <- ws_data %>%
+  filter(!is.na(wsid), !is.na(gps_location)) %>%
+  distinct(wsid, .keep_all = TRUE) %>%
   separate(gps_location, into = c("ws_lat", "ws_lon", "ws_alt", "ws_acc"), 
            sep = " ", remove = FALSE, convert = TRUE) %>%
-  mutate(water_source_type = str_to_title(str_replace_all(water_source_type, "_", " ")))
+  select(wsid, uuid, community, ws_lat, ws_lon, water_source_type)
 
-# --- Function to create connection map ---
-create_connection_map <- function(hh_community, ws_community, shapefile, source_type = "drinking") {
+create_connection_map <- function(hh_community, source_type = "drinking") {
   
-  # Water source colors
   ws_colors <- c(
     "Closed Well" = "tan2",
     "Open Well" = "tan4",
@@ -880,41 +883,35 @@ create_connection_map <- function(hh_community, ws_community, shapefile, source_
     "Tank" = "cornsilk1"
   )
   
-  # Set column names based on source type
   type_col <- if(source_type == "drinking") "drinking_source_type" else "domestic_source_type"
   selection_col <- if(source_type == "drinking") "drinking_source_selection" else "domestic_source_selection"
   
-  # Filter and convert household data to sf once
-  hh_sf <- hh_data_raw %>%
+  hh_sf <- hh_connection %>%
     filter(community == hh_community, !is.na(hh_lat), !is.na(hh_lon)) %>%
     rename(source_type = !!type_col, source_selection = !!selection_col) %>%
     st_as_sf(coords = c("hh_lon", "hh_lat"), crs = 4326, remove = FALSE) %>%
-    st_filter(shapefile) %>%
     mutate(hh_color = if_else(source_type == "Sachet", "Sachet", "Other"))
   
-  # Filter and convert water source data to sf once
-  ws_sf <- ws_data_raw %>%
-    filter(community == ws_community, !is.na(ws_lat), !is.na(ws_lon)) %>%
-    st_as_sf(coords = c("ws_lon", "ws_lat"), crs = 4326, remove = FALSE) %>%
-    st_filter(shapefile)
+  ws_sf <- ws_connection %>%
+    filter(community == hh_community, !is.na(ws_lat), !is.na(ws_lon)) %>%
+    st_as_sf(coords = c("ws_lon", "ws_lat"), crs = 4326, remove = FALSE)
   
-  # Create connections using sf objects directly
+  if(nrow(hh_sf) == 0 && nrow(ws_sf) == 0) return(NULL)
+  
   hh_df <- st_drop_geometry(hh_sf)
   ws_df <- st_drop_geometry(ws_sf)
   
   connections <- hh_df %>%
     inner_join(ws_df, by = c("source_selection" = "uuid")) %>%
-    rowwise() %>%
-    mutate(
-      distance = st_distance(
-        st_sfc(st_point(c(hh_lon, hh_lat)), crs = 4326),
-        st_sfc(st_point(c(ws_lon, ws_lat)), crs = 4326)
-      ) %>% as.numeric()
-    ) %>%
-    ungroup()
+    filter(!is.na(hh_lon), !is.na(hh_lat), !is.na(ws_lon), !is.na(ws_lat))
   
-  # Build map
   if(nrow(connections) > 0) {
+    hh_points <- st_as_sf(connections, coords = c("hh_lon", "hh_lat"), crs = 4326, remove = FALSE)
+    ws_points <- st_as_sf(connections, coords = c("ws_lon", "ws_lat"), crs = 4326, remove = FALSE)
+    connections$distance <- as.numeric(st_distance(hh_points, ws_points, by_element = TRUE))
+    
+    gradient <- colorRampPalette(c("blue", "lightcoral"))(100)
+    
     lines_sf <- connections %>%
       rowwise() %>%
       mutate(
@@ -922,58 +919,72 @@ create_connection_map <- function(hh_community, ws_community, shapefile, source_
       ) %>%
       ungroup() %>%
       st_as_sf() %>%
-      mutate(distance_label = paste0(round(distance, 1), " meters"))
+      mutate(
+        distance_label = paste0(round(distance, 1), " meters"),
+        distance_color = case_when(
+          distance > 500 ~ "#8B0000",
+          distance > 300 ~ "#FF0000",
+          TRUE ~ gradient[pmin(ceiling(distance / 300 * 100), 100)]
+        )
+      )
     
-    mapview(lines_sf, zcol = "distance", color = colorRampPalette(c("blue", "red"))(100), layer.name = "Distance", lwd = 2, label = lines_sf$distance_label) +
-      mapview(hh_sf %>% st_drop_geometry() %>% st_as_sf(coords = c("hh_lon", "hh_lat"), crs = 4326), 
-              zcol = "hh_color", col.regions = c("tan", "black"), cex = 2, layer.name = "Households", 
-              label = hh_sf$source_type, legend = FALSE) +
-      mapview(ws_sf %>% st_drop_geometry() %>% st_as_sf(coords = c("ws_lon", "ws_lat"), crs = 4326), 
-              zcol = "water_source_type", col.regions = ws_colors, cex = 4, layer.name = "Water Sources")
+    m <- mapview(lines_sf, color = lines_sf$distance_color, layer.name = "Distance", 
+                 lwd = 2, label = lines_sf$distance_label, legend = FALSE)
   } else {
-    mapview(hh_sf %>% st_drop_geometry() %>% st_as_sf(coords = c("hh_lon", "hh_lat"), crs = 4326), 
-            zcol = "hh_color", col.regions = c("tan", "black"), cex = 2, layer.name = "Households", 
-            label = hh_sf$source_type, legend = FALSE) +
-      mapview(ws_sf %>% st_drop_geometry() %>% st_as_sf(coords = c("ws_lon", "ws_lat"), crs = 4326), 
-              zcol = "water_source_type", col.regions = ws_colors, cex = 4, layer.name = "Water Sources")
+    m <- NULL
   }
+  
+  if(nrow(hh_sf) > 0) {
+    hh_mv <- mapview(hh_sf %>% st_drop_geometry() %>% st_as_sf(coords = c("hh_lon", "hh_lat"), crs = 4326), 
+                     zcol = "hh_color", col.regions = c("tan", "black"), cex = 2, layer.name = "Households", 
+                     label = hh_sf$source_type, legend = FALSE)
+    m <- if(is.null(m)) hh_mv else m + hh_mv
+  }
+  
+  if(nrow(ws_sf) > 0) {
+    ws_mv <- mapview(ws_sf %>% st_drop_geometry() %>% st_as_sf(coords = c("ws_lon", "ws_lat"), crs = 4326), 
+                     zcol = "water_source_type", col.regions = ws_colors, cex = 4, layer.name = "Water Sources")
+    m <- if(is.null(m)) ws_mv else m + ws_mv
+  }
+  
+  m
 }
 ```
 
 ## Cockle Bay
 
 ### Drinking Water Sources
-```{r cockle-drinking}
-create_connection_map("Cockle Bay", "cockle_bay", cockle_shapefile, "drinking")
+```{r cockle-drinking, cache = T}
+create_connection_map("Cockle Bay", "drinking")
 ```
 
 ### Domestic Water Sources
-```{r cockle-domestic}
-create_connection_map("Cockle Bay", "cockle_bay", cockle_shapefile, "domestic")
+```{r cockle-domestic, cache = T}
+create_connection_map("Cockle Bay", "domestic")
 ```
 
 ## Dworzark
 
 ### Drinking Water Sources
 ```{r dworzark-drinking}
-create_connection_map("Dworzark", "dworzark", dworzark_shapefile, "drinking")
+create_connection_map("Dworzark", "drinking")
 ```
 
 ### Domestic Water Sources
 ```{r dworzark-domestic}
-create_connection_map("Dworzark", "dworzark", dworzark_shapefile, "domestic")
+create_connection_map("Dworzark", "domestic")
 ```
 
 ## Portee Rokupa
 
 ### Drinking Water Sources
 ```{r portee-drinking}
-create_connection_map("Portee Rokupa", "portee_rokupa", portee_shapefile, "drinking")
+create_connection_map("Portee Rokupa", "drinking")
 ```
 
 ### Domestic Water Sources
 ```{r portee-domestic}
-create_connection_map("Portee Rokupa", "portee_rokupa", portee_shapefile, "domestic")
+create_connection_map("Portee Rokupa", "domestic")
 ```
 
 

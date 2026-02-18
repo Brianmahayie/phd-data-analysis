@@ -103,16 +103,15 @@ for (var in frequency_vars) {
 hwise_vars <- c("hwise_worry", "hwise_interrupted", "hwise_clothes", "hwise_schedule",
                 "hwise_food", "hwise_hand_washing", "hwise_body_washing", "hwise_drinking",
                 "hwise_angry", "hwise_thirsty", "hwise_no_water", "hwise_stigma")
-
 hwise_vars <- hwise_vars[hwise_vars %in% names(hh_data)]
 
 hh_data <- hh_data %>%
   mutate(across(all_of(hwise_vars),
                 ~ case_when(
-                  . == 1 ~ 0L,
-                  . == 2 ~ 1L,
-                  . == 3 ~ 2L,
-                  . %in% c(4, 5) ~ 3L,
+                  grepl("Never", .) ~ 0L,
+                  grepl("Rarely", .) ~ 1L,
+                  grepl("Sometimes", .) ~ 2L,
+                  grepl("Often|Always", .) ~ 3L,
                   TRUE ~ NA_integer_
                 ),
                 .names = "{.col}_score")) %>%

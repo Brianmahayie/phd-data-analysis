@@ -291,8 +291,11 @@ surveyor_map <- function(selected_surveyor) {
   
   surveyor_hh_current <- filter_within_buffer(surveyor_hh_current) %>%
     mutate(
-      is_yesterday = survey_date == Sys.Date() - 1,
-      category = ifelse(is_yesterday, "HH Yesterday", "HHs Completed")
+      category = case_when(
+        survey_date == Sys.Date() ~ "HH Today",
+        survey_date == Sys.Date() - 1 ~ "HH Yesterday",
+        TRUE ~ "HHs Completed"
+      )
     )
   
   current_hhids <- unique(surveyor_hh_current$hhid)
@@ -327,8 +330,11 @@ surveyor_map <- function(selected_surveyor) {
     
     surveyor_ws_current <- filter_within_buffer(surveyor_ws_current) %>%
       mutate(
-        is_yesterday = survey_date == Sys.Date() - 1,
-        category = ifelse(is_yesterday, "WS Yesterday", "WSs Completed")
+        category = case_when(
+          survey_date == Sys.Date() ~ "WS Today",
+          survey_date == Sys.Date() - 1 ~ "WS Yesterday",
+          TRUE ~ "WSs Completed"
+        )
       )
     
     current_wsids <- unique(surveyor_ws_current$wsid)
@@ -353,24 +359,27 @@ surveyor_map <- function(selected_surveyor) {
   # --- COUNTS & LABELS ---
   if (include_water_sources) {
     counts <- c(
+      "WS Today" = nrow(surveyor_ws_current %>% filter(category == "WS Today")),
       "WS Yesterday" = nrow(surveyor_ws_current %>% filter(category == "WS Yesterday")),
       "WSs Completed" = nrow(surveyor_ws_current %>% filter(category == "WSs Completed")),
       "WS To Do" = nrow(surveyor_ws_unmapped),
+      "HH Today" = nrow(surveyor_hh_current %>% filter(category == "HH Today")),
       "HH Yesterday" = nrow(surveyor_hh_current %>% filter(category == "HH Yesterday")),
       "HHs Completed" = nrow(surveyor_hh_current %>% filter(category == "HHs Completed")),
       "HH To Do" = nrow(surveyor_hh_unmapped)
     )
-    ws_completed <- counts["WS Yesterday"] + counts["WSs Completed"]
+    ws_completed <- counts["WS Today"] + counts["WS Yesterday"] + counts["WSs Completed"]
     ws_total <- ws_completed + counts["WS To Do"]
   } else {
     counts <- c(
+      "HH Today" = nrow(surveyor_hh_current %>% filter(category == "HH Today")),
       "HH Yesterday" = nrow(surveyor_hh_current %>% filter(category == "HH Yesterday")),
       "HHs Completed" = nrow(surveyor_hh_current %>% filter(category == "HHs Completed")),
       "HH To Do" = nrow(surveyor_hh_unmapped)
     )
   }
   
-  hh_completed <- counts["HH Yesterday"] + counts["HHs Completed"]
+  hh_completed <- counts["HH Today"] + counts["HH Yesterday"] + counts["HHs Completed"]
   hh_total <- hh_completed + counts["HH To Do"]
   
   if (include_water_sources) {
@@ -382,32 +391,35 @@ surveyor_map <- function(selected_surveyor) {
   
   if (include_water_sources) {
     category_labels <- c(
+      "WS Today" = paste0("WS Today (", counts["WS Today"], ")"),
       "WS Yesterday" = paste0("WS Yesterday (", counts["WS Yesterday"], ")"),
       "WSs Completed" = paste0("WSs Completed (", counts["WSs Completed"], ")"),
       "WS To Do" = paste0("WS To Do (", counts["WS To Do"], ")"),
+      "HH Today" = paste0("HH Today (", counts["HH Today"], ")"),
       "HH Yesterday" = paste0("HH Yesterday (", counts["HH Yesterday"], ")"),
       "HHs Completed" = paste0("HHs Completed (", counts["HHs Completed"], ")"),
       "HH To Do" = paste0("HH To Do (", counts["HH To Do"], ")")
     )
     category_colors <- c(
-      "WS Yesterday" = "#00FF00", "WSs Completed" = "#808080", "WS To Do" = "#FF7F00",
-      "HH Yesterday" = "#00FF00", "HHs Completed" = "#808080", "HH To Do" = "#FF7F00"
+      "WS Today" = "#0000FF", "WS Yesterday" = "#00FF00", "WSs Completed" = "#808080", "WS To Do" = "#FF7F00",
+      "HH Today" = "#0000FF", "HH Yesterday" = "#00FF00", "HHs Completed" = "#808080", "HH To Do" = "#FF7F00"
     )
     category_shapes <- c(
-      "WS Yesterday" = 24, "WSs Completed" = 24, "WS To Do" = 24,
-      "HH Yesterday" = 21, "HHs Completed" = 21, "HH To Do" = 21
+      "WS Today" = 24, "WS Yesterday" = 24, "WSs Completed" = 24, "WS To Do" = 24,
+      "HH Today" = 21, "HH Yesterday" = 21, "HHs Completed" = 21, "HH To Do" = 21
     )
   } else {
     category_labels <- c(
+      "HH Today" = paste0("HH Today (", counts["HH Today"], ")"),
       "HH Yesterday" = paste0("HH Yesterday (", counts["HH Yesterday"], ")"),
       "HHs Completed" = paste0("HHs Completed (", counts["HHs Completed"], ")"),
       "HH To Do" = paste0("HH To Do (", counts["HH To Do"], ")")
     )
     category_colors <- c(
-      "HH Yesterday" = "#00FF00", "HHs Completed" = "#808080", "HH To Do" = "#FF7F00"
+      "HH Today" = "#0000FF", "HH Yesterday" = "#00FF00", "HHs Completed" = "#808080", "HH To Do" = "#FF7F00"
     )
     category_shapes <- c(
-      "HH Yesterday" = 21, "HHs Completed" = 21, "HH To Do" = 21
+      "HH Today" = 21, "HH Yesterday" = 21, "HHs Completed" = 21, "HH To Do" = 21
     )
   }
   
