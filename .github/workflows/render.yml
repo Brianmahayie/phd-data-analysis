@@ -35,7 +35,7 @@ jobs:
       - name: Install R packages
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
-        cache: true
+          cache: true
           packages: |
             any::tidyverse
             any::lubridate
