@@ -252,8 +252,10 @@ remove_uuids <- c(
   "4e56573d-ac77-4efc-a415-812560d0fd05",  # Jamiatu interviewed twice in Feb
   "1861228c-ad30-4cd6-91a2-3d4e4fe49951",  # Test Survey
   "4bcff6b8-14a9-42b9-a6e2-e70c5059649c",  # Test Survey
-  "ed9e5816-c960-4aef-aca3-fd210efd0002"   # Jamiatu interviewed twice in Feb. Gave this one the wrong HHID
-)
+  "ed9e5816-c960-4aef-aca3-fd210efd0002",  # Jamiatu interviewed twice in Feb. Gave this one the wrong HHID
+  "cd7628b1-737c-490b-80cc-225be59231c0", # Upload problems, Jamiatu redid this survey
+  "231ec26a-096e-4b78-b696-88efac27b658" # Upload problems, Jamiatu redid this survey
+  )
 
 hh_data <- hh_data %>% filter(!uuid %in% remove_uuids)
 
@@ -1031,6 +1033,7 @@ hh_data[hh_data$uuid == "17b502a4-b151-4605-9a64-bf28c7fa89ed", "hhid"] <- "D355
 hh_data[hh_data$uuid == "c8f43405-aac9-4350-988a-f757a5e00b82", "hhid"] <- "D356"
 hh_data[hh_data$uuid == "022a6700-fd55-4272-ab9c-0ba341dc6291", "hhid"] <- "D128"
 hh_data[hh_data$uuid == "2d7f9674-bdf2-4bd5-a0a5-7c3d7f86670f", "hhid"] <- "D002"
+
 
 # Responsible Surveyor Assignment ####
 dworzark_lookup <- hh_data %>%
