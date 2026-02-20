@@ -1030,6 +1030,7 @@ hh_data[hh_data$uuid == "83b6d95a-69fd-4834-b5d5-7644900e65e2", "hhid"] <- "D357
 hh_data[hh_data$uuid == "17b502a4-b151-4605-9a64-bf28c7fa89ed", "hhid"] <- "D355"
 hh_data[hh_data$uuid == "c8f43405-aac9-4350-988a-f757a5e00b82", "hhid"] <- "D356"
 hh_data[hh_data$uuid == "022a6700-fd55-4272-ab9c-0ba341dc6291", "hhid"] <- "D128"
+hh_data[hh_data$uuid == "2d7f9674-bdf2-4bd5-a0a5-7c3d7f86670f", "hhid"] <- "D002"
 
 # Responsible Surveyor Assignment ####
 dworzark_lookup <- hh_data %>%
