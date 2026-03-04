@@ -597,7 +597,7 @@ if (format(Sys.Date(), "%b") %in% c("Dec", "Feb", "Apr", "Jun", "Aug", "Oct")) k
 
 ```{r ws_remaining_setup}
 current_survey_month <- format(Sys.Date(), "%b")
-
+is_survey_month <- !(current_survey_month %in% c("Dec", "Feb", "Apr", "Jun", "Aug", "Oct"))
 remaining_sources <- function(data, comm, survey_month) {
   already_done <- data %>%
     filter(community == comm, display_month == survey_month) %>%
