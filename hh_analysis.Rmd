@@ -14,6 +14,8 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+unloadNamespace("htmlwidgets")
+library(htmlwidgets)
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, cache = F)
 
 library(knitr)
@@ -563,59 +565,56 @@ ggplot(alluvial_data_prop,
   guides(fill = guide_legend(nrow = 2, byrow = FALSE))
 ```
 
-```{r}
-# Calculate percentages for the table
-summary_data <- alluvial_data %>%
-  count(survey_month, drinking_source_type) %>%
-  group_by(survey_month) %>%
-  mutate(pct = n / sum(n) * 100,
-         display = paste0(n, " (", round(pct, 0), "%)")) %>%
-  ungroup()
-
-# Calculate totals for each month
-totals <- alluvial_data %>%
-  count(survey_month) %>%
-  mutate(display = as.character(n)) %>%
-  select(survey_month, display) %>%
-  pivot_wider(names_from = survey_month, values_from = display, values_fill = "0") %>%
-  mutate(` ` = "", `Source Type` = "Total") %>%
-  select(` `, `Source Type`, everything())
-
-# Create summary table
-summary_table <- summary_data %>%
-  select(drinking_source_type, survey_month, display) %>%
-  pivot_wider(names_from = survey_month, values_from = display, values_fill = "0 (0%)") %>%
-  arrange(drinking_source_type) %>%
-  mutate(` ` = "  ") %>%
-  select(` `, everything()) %>%
-  rename("Source Type" = drinking_source_type) %>%
-  bind_rows(totals)
-
-# Create table plot with colored cells
-table_plot <- gridExtra::tableGrob(summary_table, rows = NULL, 
-                                   theme = gridExtra::ttheme_minimal())
-
-# Add colors to the first column (row i+1 because of header, but not for Total row)
-for (i in 1:(nrow(summary_table) - 1)) {
-  source_type <- summary_table$`Source Type`[i]
-  if (source_type %in% names(color_map)) {
-    table_plot <- gtable::gtable_add_grob(
-      table_plot,
-      grid::rectGrob(gp = grid::gpar(fill = color_map[source_type], col = "black")),
-      t = i + 1, l = 1, b = i + 1, r = 1,
-      z = 3
-    )
+```{r drinking_aluvial}
+if (nrow(alluvial_data) > 0) {
+  # Calculate percentages for the table
+  summary_data <- alluvial_data %>%
+    count(survey_month, drinking_source_type) %>%
+    group_by(survey_month) %>%
+    mutate(pct = n / sum(n) * 100,
+           display = paste0(n, " (", round(pct, 0), "%)")) %>%
+    ungroup()
+  # Calculate totals for each month
+  totals <- alluvial_data %>%
+    count(survey_month) %>%
+    mutate(display = as.character(n)) %>%
+    select(survey_month, display) %>%
+    pivot_wider(names_from = survey_month, values_from = display, values_fill = "0") %>%
+    mutate(` ` = "", `Source Type` = "Total") %>%
+    select(` `, `Source Type`, everything())
+  # Create summary table
+  summary_table <- summary_data %>%
+    select(drinking_source_type, survey_month, display) %>%
+    pivot_wider(names_from = survey_month, values_from = display, values_fill = "0 (0%)") %>%
+    arrange(drinking_source_type) %>%
+    mutate(` ` = "  ") %>%
+    select(` `, everything()) %>%
+    rename("Source Type" = drinking_source_type) %>%
+    bind_rows(totals)
+  # Create table plot with colored cells
+  table_plot <- gridExtra::tableGrob(summary_table, rows = NULL, 
+                                     theme = gridExtra::ttheme_minimal())
+  # Add colors to the first column (row i+1 because of header, but not for Total row)
+  for (i in 1:(nrow(summary_table) - 1)) {
+    source_type <- summary_table$`Source Type`[i]
+    if (source_type %in% names(color_map)) {
+      table_plot <- gtable::gtable_add_grob(
+        table_plot,
+        grid::rectGrob(gp = grid::gpar(fill = color_map[source_type], col = "black")),
+        t = i + 1, l = 1, b = i + 1, r = 1,
+        z = 3
+      )
+    }
   }
+  # Display table
+  grid::grid.newpage()
+  grid::grid.draw(table_plot)
 }
-
-# Display table
-grid::grid.newpage()
-grid::grid.draw(table_plot)
 ```
 
 ### Potable Drinking Source
 
-```{r}
+```{r drinking_potable}
 hh_data %>%
   filter(!is.na(drinking_potable), !is.na(community)) %>%
   count(survey_month, drinking_potable) %>%
@@ -641,7 +640,7 @@ hh_data %>%
 
 ### Minutes Gathering Water
 
-```{r}
+```{r drinking_min_gathering_water}
 # Set y-axis limit
 time_limit <- 120
 
@@ -749,58 +748,55 @@ ggplot(alluvial_domestic_prop,
 ```
 
 ```{r domestic_source_table}
-# Calculate percentages for the table
-summary_data_domestic <- alluvial_domestic %>%
-  count(survey_month, domestic_source_type) %>%
-  group_by(survey_month) %>%
-  mutate(pct = n / sum(n) * 100,
-         display = paste0(n, " (", round(pct, 0), "%)")) %>%
-  ungroup()
-
-# Calculate totals for each month
-totals_domestic <- alluvial_domestic %>%
-  count(survey_month) %>%
-  mutate(display = as.character(n)) %>%
-  select(survey_month, display) %>%
-  pivot_wider(names_from = survey_month, values_from = display, values_fill = "0") %>%
-  mutate(` ` = "", `Source Type` = "Total") %>%
-  select(` `, `Source Type`, everything())
-
-# Create summary table
-summary_table_domestic <- summary_data_domestic %>%
-  select(domestic_source_type, survey_month, display) %>%
-  pivot_wider(names_from = survey_month, values_from = display, values_fill = "0 (0%)") %>%
-  arrange(domestic_source_type) %>%
-  mutate(` ` = "  ") %>%
-  select(` `, everything()) %>%
-  rename("Source Type" = domestic_source_type) %>%
-  bind_rows(totals_domestic)
-
-# Create table plot with colored cells
-table_plot_domestic <- gridExtra::tableGrob(summary_table_domestic, rows = NULL, 
-                                            theme = gridExtra::ttheme_minimal())
-
-# Add colors to the first column (row i+1 because of header, but not for Total row)
-for (i in 1:(nrow(summary_table_domestic) - 1)) {
-  source_type <- summary_table_domestic$`Source Type`[i]
-  if (source_type %in% names(color_map_domestic)) {
-    table_plot_domestic <- gtable::gtable_add_grob(
-      table_plot_domestic,
-      grid::rectGrob(gp = grid::gpar(fill = color_map_domestic[source_type], col = "black")),
-      t = i + 1, l = 1, b = i + 1, r = 1,
-      z = 3
-    )
+if (nrow(alluvial_domestic) > 0) {
+  # Calculate percentages for the table
+  summary_data_domestic <- alluvial_domestic %>%
+    count(survey_month, domestic_source_type) %>%
+    group_by(survey_month) %>%
+    mutate(pct = n / sum(n) * 100,
+           display = paste0(n, " (", round(pct, 0), "%)")) %>%
+    ungroup()
+  # Calculate totals for each month
+  totals_domestic <- alluvial_domestic %>%
+    count(survey_month) %>%
+    mutate(display = as.character(n)) %>%
+    select(survey_month, display) %>%
+    pivot_wider(names_from = survey_month, values_from = display, values_fill = "0") %>%
+    mutate(` ` = "", `Source Type` = "Total") %>%
+    select(` `, `Source Type`, everything())
+  # Create summary table
+  summary_table_domestic <- summary_data_domestic %>%
+    select(domestic_source_type, survey_month, display) %>%
+    pivot_wider(names_from = survey_month, values_from = display, values_fill = "0 (0%)") %>%
+    arrange(domestic_source_type) %>%
+    mutate(` ` = "  ") %>%
+    select(` `, everything()) %>%
+    rename("Source Type" = domestic_source_type) %>%
+    bind_rows(totals_domestic)
+  # Create table plot with colored cells
+  table_plot_domestic <- gridExtra::tableGrob(summary_table_domestic, rows = NULL, 
+                                              theme = gridExtra::ttheme_minimal())
+  # Add colors to the first column (row i+1 because of header, but not for Total row)
+  for (i in 1:(nrow(summary_table_domestic) - 1)) {
+    source_type <- summary_table_domestic$`Source Type`[i]
+    if (source_type %in% names(color_map_domestic)) {
+      table_plot_domestic <- gtable::gtable_add_grob(
+        table_plot_domestic,
+        grid::rectGrob(gp = grid::gpar(fill = color_map_domestic[source_type], col = "black")),
+        t = i + 1, l = 1, b = i + 1, r = 1,
+        z = 3
+      )
+    }
   }
+  # Display table
+  grid::grid.newpage()
+  grid::grid.draw(table_plot_domestic)
 }
-
-# Display table
-grid::grid.newpage()
-grid::grid.draw(table_plot_domestic)
 ```
 
 ### Minutes Gathering Water
 
-```{r}
+```{r domestic_min_gathering_water}
 # Set y-axis limit
 time_limit <- 120
 
@@ -849,7 +845,7 @@ hh_data %>%
 
 # HH-Source Connections
 
-```{r, include=FALSE}
+```{r, hh_source_connections, include=FALSE}
 # --- Household Data: most recent survey per hhid ---
 hh_connection <- hh_data %>%
   filter(!is.na(hhid), !is.na(gps_location)) %>%
