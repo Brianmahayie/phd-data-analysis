@@ -10,13 +10,21 @@ kobo_token <- Sys.getenv("KOBO_TOKEN")
 form_id <- "aDnYgCWxBduEXrC6cFzCP2"
 base_url <- "https://kf.kobotoolbox.org/api/v2/assets/"
 
-response <- GET(
-  paste0(base_url, form_id, "/data.json"),
-  add_headers(Authorization = paste("Token", kobo_token))
-)
-
-data_list <- content(response, as = "parsed", simplifyDataFrame = TRUE)
-ws_data <- as.data.frame(data_list$results)
+all_results <- list()
+offset <- 0
+limit <- 1000
+repeat {
+  response <- GET(
+    paste0(base_url, form_id, "/data.json?limit=", limit, "&start=", offset),
+    add_headers(Authorization = paste("Token", kobo_token))
+  )
+  data_list <- content(response, as = "parsed", simplifyDataFrame = TRUE)
+  batch <- as.data.frame(data_list$results)
+  all_results <- append(all_results, list(batch))
+  if (nrow(batch) < limit) break
+  offset <- offset + limit
+}
+ws_data <- bind_rows(all_results)
 
 # Column Name Cleaning ####
 ws_uuid <- ws_data[["_uuid"]]

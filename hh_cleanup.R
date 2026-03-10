@@ -13,12 +13,22 @@ kobo_token <- Sys.getenv("KOBO_TOKEN")
 form_id <- "a7WdSwwL7Zug9hC98x5PRd"
 base_url <- "https://kf.kobotoolbox.org/api/v2/assets/"
 
-response <- GET(
-  paste0(base_url, form_id, "/data.json"),
-  add_headers(Authorization = paste("Token", kobo_token))
-)
-data_list <- content(response, as = "parsed", simplifyDataFrame = TRUE)
-hh_data <- as.data.frame(data_list$results)
+# Paginated API Pull
+all_results <- list()
+offset <- 0
+limit <- 1000
+repeat {
+  response <- GET(
+    paste0(base_url, form_id, "/data.json?limit=", limit, "&start=", offset),
+    add_headers(Authorization = paste("Token", kobo_token))
+  )
+  data_list <- content(response, as = "parsed", simplifyDataFrame = TRUE)
+  batch <- as.data.frame(data_list$results)
+  all_results <- append(all_results, list(batch))
+  if (nrow(batch) < limit) break
+  offset <- offset + limit
+}
+hh_data <- bind_rows(all_results)
 
 # Column Name Cleaning ####
 uuid_submission <- hh_data$`_uuid`
