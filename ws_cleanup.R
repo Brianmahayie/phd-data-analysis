@@ -33,12 +33,18 @@ names(ws_data) <- names(ws_data) %>%
   sub(".*/", "", .) %>%
   sub("^_", "", .)
 
+# Coalesce duplicate columns before deduplication
+dup_names <- names(ws_data)[duplicated(names(ws_data))]
+for (dn in unique(dup_names)) {
+  cols <- which(names(ws_data) == dn)
+  ws_data[[cols[1]]] <- coalesce(ws_data[[cols[1]]], ws_data[[cols[2]]])
+}
 ws_data <- ws_data[, !duplicated(names(ws_data))]
 ws_data$uuid <- ws_uuid
 
 # Datetime & Consent Filter ####
 ws_data <- ws_data %>%
-  filter(consent == "yes") %>%
+  filter(consent == "yes" | (functional == "1" & is.na(consent)))%>%
   mutate(
     start_time = ymd_hms(start_time, tz = "UTC"),
     start = ymd_hms(start, tz = "UTC"),
@@ -72,8 +78,8 @@ ws_data$source_ID <- ifelse(ws_data$month == "november", NA, ws_data$source_ID)
 # Factors ####
 ws_data <- ws_data %>%
   mutate(surveyor_name = factor(surveyor_name,
-                                levels = c("abdulaib", "abdulaik", "boboieh", "jamiatu", "musa", "joana", "moses", "joseph", "other"),
-                                labels = c("Abdulai B", "Abdulai K", "Boboieh", "Jamiatu", "Musa", "Joana", "Moses", "Joseph", "Other")))
+                                levels = c("abdulaib", "abdulaik", "boboieh", "jamiatu", "musa", "joana", "moses", "joseph", "sinneh", "other"),
+                                labels = c("Abdulai B", "Abdulai K", "Boboieh", "Jamiatu", "Musa", "Joana", "Moses", "Joseph", "Sinneh", "Other")))
 
 ws_data <- ws_data %>%
   mutate(community = factor(community,

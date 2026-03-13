@@ -612,9 +612,13 @@ remaining_sources <- function(data, comm, survey_month) {
     select(wsid, uuid, display_month, respondent_name, zone, water_source_type) %>%
     arrange(zone, wsid)
 }
+
+remaining_count <- function(data, comm, survey_month) {
+  nrow(remaining_sources(data, comm, survey_month))
+}
 ```
 
-## Cockle Bay Remaining
+## Cockle Bay (`r remaining_count(ws_daily, "Cockle Bay", current_survey_month)` remaining)
 
 ```{r, eval=is_survey_month}
 if (!is.na(current_survey_month)) {
@@ -624,7 +628,7 @@ if (!is.na(current_survey_month)) {
 }
 ```
 
-## Dworzark Remaining
+## Dworzark (`r remaining_count(ws_daily, "Dworzark", current_survey_month)` remaining)
 
 ```{r, eval=is_survey_month}
 if (!is.na(current_survey_month)) {
@@ -634,7 +638,7 @@ if (!is.na(current_survey_month)) {
 }
 ```
 
-## Portee Rokupa Remaining
+## Portee Rokupa (`r remaining_count(ws_daily, "Portee Rokupa", current_survey_month)` remaining)
 
 ```{r, eval=is_survey_month}
 if (!is.na(current_survey_month)) {
