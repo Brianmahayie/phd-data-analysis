@@ -264,7 +264,11 @@ remove_uuids <- c(
   "4bcff6b8-14a9-42b9-a6e2-e70c5059649c",  # Test Survey
   "ed9e5816-c960-4aef-aca3-fd210efd0002",  # Jamiatu interviewed twice in Feb. Gave this one the wrong HHID
   "cd7628b1-737c-490b-80cc-225be59231c0", # Upload problems, Jamiatu redid this survey
-  "231ec26a-096e-4b78-b696-88efac27b658" # Upload problems, Jamiatu redid this survey
+  "231ec26a-096e-4b78-b696-88efac27b658", # Upload problems, Jamiatu redid this survey
+  "4f42fbe1-e9b2-42de-a25c-3e39636c6aa6", # Jamiatu did this household twice, unknown reason why
+  "3f703b25-d6ec-4378-962e-60b7c8a4f26e", # Jamiatu did the survey, but this is Boboieh's responsibility.
+  "ace07a79-7334-4340-8946-96524ebd8915", # Musa did this hh twice in 2 days.
+  "d6cfcc03-90dc-478b-8a58-c7ee48a83162" # Jamiatu did this household twice, unknown reason why
   )
 
 hh_data <- hh_data %>% filter(!uuid %in% remove_uuids)
@@ -297,6 +301,10 @@ hh_data[hh_data$uuid == "2d12fbad-4dc6-46c9-af30-44b004af0583", "survey_month"] 
 hh_data[hh_data$uuid == "9dbf3fb1-7a2e-47ef-8499-418e4cf45cde", "survey_month"] <- "Feb"
 hh_data[hh_data$uuid == "bd4b9a30-d1c5-49bb-a772-acddd85fa80d", "survey_month"] <- "Feb"
 hh_data[hh_data$uuid == "711475da-56a6-4d34-a4a4-2364485094db", "survey_month"] <- "Mar"
+hh_data[hh_data$uuid == "0c3a51ca-908a-4663-93bd-b4a3a492f93c", "survey_month"] <- "Mar"
+hh_data[hh_data$uuid == "2acb3d70-9e2e-472e-882b-4ba00df0cd61", "survey_month"] <- "Mar"
+hh_data[hh_data$uuid == "11ddd6c1-db24-4a39-8446-bbefbce28d73", "survey_month"] <- "Mar"
+hh_data[hh_data$uuid == "b51e7e88-3d9a-4e48-94ff-409daee2ab42", "survey_month"] <- "Mar"
 
 # Community Corrections ####
 hh_data[hh_data$uuid == "fc735327-7e52-4fbb-8075-396dba0bf9a5", "community"] <- "Dworzark"
