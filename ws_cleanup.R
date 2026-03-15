@@ -501,6 +501,8 @@ ws_data[ws_data$uuid == "c26aa159-2ba2-4db1-9094-63191460b13d", "wsid"] <- "P068
 ws_data[ws_data$uuid == "deb5b27c-3eab-450a-8d5f-fb6be3b93ee3", "wsid"] <- "P069" 
 ws_data[ws_data$uuid == "661d62ab-4b59-415d-a630-1e6cacd593bf", "wsid"] <- "P070" 
 
+ws_data[ws_data$uuid == "8a0ffb38-4284-4393-92d3-d98a50d896ea", "surveyor_name"] <- "Sinneh" 
+
 # Vital Corrections ####
 ws_data <- ws_data[ws_data$uuid != "6260d134-2d8b-4521-bb70-9df99dc3acab", ]
 ws_data <- ws_data[ws_data$uuid != "ea2472f6-adfb-41b7-90da-50fb074cdbf3", ]

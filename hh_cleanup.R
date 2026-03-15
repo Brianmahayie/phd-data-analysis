@@ -313,6 +313,7 @@ hh_data[hh_data$uuid == "fc735327-7e52-4fbb-8075-396dba0bf9a5", "community"] <- 
 hh_data[hh_data$uuid == "e6c9f82c-7257-41e1-90f8-0f1df5df1741", "surveyor_name"] <- "Musa"
 hh_data[hh_data$uuid == "20bbff41-5fa0-474d-874a-0d67251e3005", "surveyor_name"] <- "Musa"
 hh_data[hh_data$uuid == "1ead9361-25b6-482d-ab9a-33e7ee080f41", "surveyor_name"] <- "Boboieh"
+hh_data[hh_data$uuid == "d8e52dca-4764-4077-ba08-76b6e7469871", "surveyor_name"] <- "Abdulai K"
 
 # HHID Corrections ####
 
@@ -1078,6 +1079,7 @@ hh_data <- hh_data %>%
 hh_data[which(hh_data$hhid == "D334"), "resp_surveyor"] <- "Boboieh"
 hh_data[which(hh_data$hhid == "D342"), "resp_surveyor"] <- "Boboieh"
 hh_data[which(hh_data$hhid == "D355"), "resp_surveyor"] <- "Boboieh"
+
 # Individual Field Corrections ####
 
 hh_data[hh_data$uuid == "a77617e9-6169-430a-95f7-b6bfbfeefdee", "adult_men"] <- 5
