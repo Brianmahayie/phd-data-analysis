@@ -6,7 +6,11 @@ library(jsonlite)
 library(sf)
 library(openxlsx)
 
-project_dir <- "C:/Users/brian/OneDrive/Desktop/PhD Project/phd-data-analysis"
+project_dir <- if (dir.exists("C:/Users/brian/OneDrive/Desktop/PhD Project/phd-data-analysis")) {
+  "C:/Users/brian/OneDrive/Desktop/PhD Project/phd-data-analysis"
+} else {
+  getwd()
+}
 setwd(project_dir)
 
 kobo_token <- Sys.getenv("KOBO_TOKEN")
