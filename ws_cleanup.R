@@ -6,6 +6,9 @@ library(jsonlite)
 library(sf)
 library(openxlsx)
 
+project_dir <- "C:/Users/brian/OneDrive/Desktop/PhD Project/phd-data-analysis"
+setwd(project_dir)
+
 kobo_token <- Sys.getenv("KOBO_TOKEN")
 form_id <- "aDnYgCWxBduEXrC6cFzCP2"
 base_url <- "https://kf.kobotoolbox.org/api/v2/assets/"
@@ -500,6 +503,8 @@ ws_data[ws_data$uuid == "748f39bd-cf41-42bc-b7dd-cbdb87a2101f", "wsid"] <- "P067
 ws_data[ws_data$uuid == "c26aa159-2ba2-4db1-9094-63191460b13d", "wsid"] <- "P068" 
 ws_data[ws_data$uuid == "deb5b27c-3eab-450a-8d5f-fb6be3b93ee3", "wsid"] <- "P069" 
 ws_data[ws_data$uuid == "661d62ab-4b59-415d-a630-1e6cacd593bf", "wsid"] <- "P070" 
+ws_data[ws_data$uuid == "a391b517-7036-466d-8785-90a163deef96", "wsid"] <- "D138"
+ws_data[ws_data$uuid == "ceb549b1-2257-4835-aca8-f53025ca66a7", "wsid"] <- "D046"
 
 ws_data[ws_data$uuid == "8a0ffb38-4284-4393-92d3-d98a50d896ea", "surveyor_name"] <- "Sinneh" 
 
@@ -507,119 +512,126 @@ ws_data[ws_data$uuid == "8a0ffb38-4284-4393-92d3-d98a50d896ea", "surveyor_name"]
 ws_data <- ws_data[ws_data$uuid != "6260d134-2d8b-4521-bb70-9df99dc3acab", ]
 ws_data <- ws_data[ws_data$uuid != "ea2472f6-adfb-41b7-90da-50fb074cdbf3", ]
 ws_data <- ws_data[ws_data$uuid != "1e7398b9-3642-4772-8158-f6e9cb6f7fcc", ]
+ws_data <- ws_data[ws_data$uuid != "b5bc8a3b-50e9-4e52-aae2-999f5c328d25", ] # Boboieh and Joseph mapped this in November
+ws_data <- ws_data[ws_data$uuid != "30fd3ad1-19f9-4c15-a983-06c096cb2877", ] # Boboieh and Jamiatu mapped this in November
+ws_data <- ws_data[ws_data$uuid != "49bd4e74-9af5-4785-b639-fb24457ef9d3", ] # Boboieh and Jamiatu mapped this in November
+ws_data <- ws_data[ws_data$wsid != "P033", ] #This is a duplicate that both Abdulais have been surveying
+ws_data <- ws_data[ws_data$wsid != "C024", ] # This was never a public water source
+ws_data <- ws_data[ws_data$wsid != "D154", ] # Sinneh says ths is the same as D127
+ws_data <- ws_data[ws_data$wsid != "D155", ] # Sinneh says ths is the same as D128
 
 # Individual Field Corrections ####
 # community
-ws_data[ws_data$source_photo == "1762854513791.jpg", "community"] <- "Dworzark"
+ws_data[which(ws_data$uuid == "830d8597-d9de-45ad-864c-ff79f9ff4a97"), "community"] <- "Dworzark"
 
 # zone
-ws_data[ws_data$source_photo == "1762854513791.jpg", "zone"] <- "Nigeria"
-ws_data[ws_data$source_photo == "1763030485469.jpg", "zone"] <- "Portee Wharf"
+ws_data[which(ws_data$uuid == "830d8597-d9de-45ad-864c-ff79f9ff4a97"), "zone"] <- "Nigeria"
+ws_data[which(ws_data$uuid == "48f11b8b-1b6c-4b24-a9f7-070771738abb"), "zone"] <- "Portee Wharf"
 
 # respondent_name
-ws_data[ws_data$source_photo == "1762854513791.jpg", "respondent_name"] <- "Ibrahim Jalloh"
-ws_data[ws_data$source_photo == "1762856784217.jpg", "respondent_name"] <- "Amanda Jones"
+ws_data[which(ws_data$uuid == "830d8597-d9de-45ad-864c-ff79f9ff4a97"), "respondent_name"] <- "Ibrahim Jalloh"
+ws_data[which(ws_data$uuid == "116f63c3-489d-43fd-a9c5-1009df54f88c"), "respondent_name"] <- "Amanda Jones"
 
 # manager_gender
-ws_data[ws_data$source_photo == "1762865226663.jpg", "manager_gender"] <- "Female"
-ws_data[ws_data$source_photo == "1763029369673.jpg", "manager_gender"] <- "Male"
-ws_data[ws_data$source_photo == "1762853482960.jpg", "manager_gender"] <- "Female"
+ws_data[which(ws_data$uuid == "639f8e4f-bb6e-42ff-88ad-0810478b410d"), "manager_gender"] <- "Female"
+ws_data[which(ws_data$uuid == "d949566d-4238-4650-8d58-32fe58f088c2"), "manager_gender"] <- "Male"
+ws_data[which(ws_data$uuid == "0319f35d-33a4-402f-a9b1-d3f0c9d77fca"), "manager_gender"] <- "Female"
 
 # owner_type
-ws_data[ws_data$source_photo == "1762865226663.jpg", "owner_type"] <- "Household"
-ws_data[ws_data$source_photo == "1763029369673.jpg", "owner_type"] <- "Committee"
-ws_data[ws_data$source_photo == "1763205423836.jpg", "owner_type"] <- "None"
+ws_data[which(ws_data$uuid == "639f8e4f-bb6e-42ff-88ad-0810478b410d"), "owner_type"] <- "Household"
+ws_data[which(ws_data$uuid == "d949566d-4238-4650-8d58-32fe58f088c2"), "owner_type"] <- "Committee"
+ws_data[which(ws_data$uuid == "558da352-a325-4c19-92b9-ab50b44ca9f5"), "owner_type"] <- "None"
 
 # source_age
-ws_data[ws_data$source_photo == "1762865226663.jpg", "source_age"] <- "20+ years"
-ws_data[ws_data$source_photo == "1763029369673.jpg", "source_age"] <- "20+ years"
+ws_data[which(ws_data$uuid == "639f8e4f-bb6e-42ff-88ad-0810478b410d"), "source_age"] <- "20+ years"
+ws_data[which(ws_data$uuid == "d949566d-4238-4650-8d58-32fe58f088c2"), "source_age"] <- "20+ years"
 
 # users_per_day
-ws_data[ws_data$source_photo == "1763029369673.jpg", "users_per_day"] <- "0"
-ws_data[ws_data$source_photo == "1763295731653.jpg", "users_per_day"] <- "50 to 100"
+ws_data[which(ws_data$uuid == "d949566d-4238-4650-8d58-32fe58f088c2"), "users_per_day"] <- "0"
+ws_data[which(ws_data$uuid == "0bc563b6-0f58-474c-8553-172f7420a7c8"), "users_per_day"] <- "50 to 100"
 
 # access_rights
-ws_data[ws_data$source_photo == "1762856519831.jpg", "access_rights"] <- "Anybody"
-ws_data[ws_data$source_photo == "1762956342305.jpg", "access_rights"] <- "Anybody"
-ws_data[ws_data$source_photo == "1762865592920.jpg", "access_rights"] <- "Community"
-ws_data[ws_data$source_photo == "1762867216335.jpg", "access_rights"] <- "Community"
+ws_data[which(ws_data$uuid == "66af76d3-686f-4097-96cb-e0285c86ecb0"), "access_rights"] <- "Anybody"
+ws_data[which(ws_data$uuid == "91f28f70-c789-45b5-b6c2-c8c66f3a02cc"), "access_rights"] <- "Anybody"
+ws_data[which(ws_data$uuid == "abf0f2bd-9c02-4ed0-ae1e-b9c983d8e617"), "access_rights"] <- "Community"
+ws_data[which(ws_data$uuid == "ddebaedf-b5c5-492c-9b6d-a3216b8093f5"), "access_rights"] <- "Community"
 
 # price_per_jerrycan
-ws_data[ws_data$source_photo == "1762856519831.jpg", "price_per_jerrycan"] <- 1
-ws_data[ws_data$source_photo == "1762956342305.jpg", "price_per_jerrycan"] <- 1
-ws_data[ws_data$source_photo == "1762865592920.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1762867216335.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763200512880.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763202790648.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763203566533.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763204742486.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763208229214.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763209899556.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763211388128.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763212023654.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763215463057.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763289940199.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763203995442.jpg", "price_per_jerrycan"] <- 0
-ws_data[ws_data$source_photo == "1763210997150.jpg", "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "66af76d3-686f-4097-96cb-e0285c86ecb0"), "price_per_jerrycan"] <- 1
+ws_data[which(ws_data$uuid == "91f28f70-c789-45b5-b6c2-c8c66f3a02cc"), "price_per_jerrycan"] <- 1
+ws_data[which(ws_data$uuid == "abf0f2bd-9c02-4ed0-ae1e-b9c983d8e617"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "ddebaedf-b5c5-492c-9b6d-a3216b8093f5"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "66bba983-f4bc-4fd7-9440-2f1a31217366"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "fe8edcfd-d6e2-4cb1-b4c5-4ecd7a9a7392"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "8fc4fe6a-3683-4cff-be30-c465a0688222"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "64bd4bc2-cc95-4bc0-acc0-cce708954969"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "3ddc613b-c3b1-445a-ae68-d1349ef3f9d8"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "e4b91629-29a9-4012-be25-c0a287a6ab9f"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "ddebded1-64b7-42c4-b1af-461cc41ad0a4"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "1b394e64-b43c-4bbb-aa3a-46c105607834"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "c9101077-45bc-4aab-b7b5-2303fd4b2832"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "fce203c6-d2ee-40ff-80ae-b73e75b22a8b"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "b0b1bd00-9dd0-45af-af00-df08af5abc37"), "price_per_jerrycan"] <- 0
+ws_data[which(ws_data$uuid == "73ea109c-aaa1-4cbb-8725-15a3ad6a7083"), "price_per_jerrycan"] <- 0
 
 # price_per_month
-ws_data[ws_data$source_photo == "1762856519831.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1762956342305.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1762865592920.jpg", "price_per_month"] <- 10
-ws_data[ws_data$source_photo == "1762867216335.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763200512880.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763202790648.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763203566533.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763204742486.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763208229214.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763209899556.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763211388128.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763212023654.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763215463057.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763289940199.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763203995442.jpg", "price_per_month"] <- 0
-ws_data[ws_data$source_photo == "1763210997150.jpg", "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "66af76d3-686f-4097-96cb-e0285c86ecb0"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "91f28f70-c789-45b5-b6c2-c8c66f3a02cc"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "abf0f2bd-9c02-4ed0-ae1e-b9c983d8e617"), "price_per_month"] <- 10
+ws_data[which(ws_data$uuid == "ddebaedf-b5c5-492c-9b6d-a3216b8093f5"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "66bba983-f4bc-4fd7-9440-2f1a31217366"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "fe8edcfd-d6e2-4cb1-b4c5-4ecd7a9a7392"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "8fc4fe6a-3683-4cff-be30-c465a0688222"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "64bd4bc2-cc95-4bc0-acc0-cce708954969"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "3ddc613b-c3b1-445a-ae68-d1349ef3f9d8"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "e4b91629-29a9-4012-be25-c0a287a6ab9f"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "ddebded1-64b7-42c4-b1af-461cc41ad0a4"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "1b394e64-b43c-4bbb-aa3a-46c105607834"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "c9101077-45bc-4aab-b7b5-2303fd4b2832"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "fce203c6-d2ee-40ff-80ae-b73e75b22a8b"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "b0b1bd00-9dd0-45af-af00-df08af5abc37"), "price_per_month"] <- 0
+ws_data[which(ws_data$uuid == "73ea109c-aaa1-4cbb-8725-15a3ad6a7083"), "price_per_month"] <- 0
 
 # price_change
-ws_data[ws_data$source_photo == "1762856519831.jpg", "price_change"] <- "Yes"
-ws_data[ws_data$source_photo == "1762956342305.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1762855960522.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1762865592920.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1762867216335.jpg", "price_change"] <- "Yes"
-ws_data[ws_data$source_photo == "1763200512880.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1763202790648.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1763203566533.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1763204742486.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1763208229214.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1763209899556.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1763211388128.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1763212023654.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1763215463057.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1763289940199.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1763203995442.jpg", "price_change"] <- "No"
-ws_data[ws_data$source_photo == "1763210997150.jpg", "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "66af76d3-686f-4097-96cb-e0285c86ecb0"), "price_change"] <- "Yes"
+ws_data[which(ws_data$uuid == "91f28f70-c789-45b5-b6c2-c8c66f3a02cc"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "24a22646-9113-4438-ae4f-1ed984eddfc6"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "abf0f2bd-9c02-4ed0-ae1e-b9c983d8e617"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "ddebaedf-b5c5-492c-9b6d-a3216b8093f5"), "price_change"] <- "Yes"
+ws_data[which(ws_data$uuid == "66bba983-f4bc-4fd7-9440-2f1a31217366"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "fe8edcfd-d6e2-4cb1-b4c5-4ecd7a9a7392"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "8fc4fe6a-3683-4cff-be30-c465a0688222"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "64bd4bc2-cc95-4bc0-acc0-cce708954969"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "3ddc613b-c3b1-445a-ae68-d1349ef3f9d8"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "e4b91629-29a9-4012-be25-c0a287a6ab9f"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "ddebded1-64b7-42c4-b1af-461cc41ad0a4"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "1b394e64-b43c-4bbb-aa3a-46c105607834"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "c9101077-45bc-4aab-b7b5-2303fd4b2832"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "fce203c6-d2ee-40ff-80ae-b73e75b22a8b"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "b0b1bd00-9dd0-45af-af00-df08af5abc37"), "price_change"] <- "No"
+ws_data[which(ws_data$uuid == "73ea109c-aaa1-4cbb-8725-15a3ad6a7083"), "price_change"] <- "No"
 
 # days_per_week
-ws_data[ws_data$source_photo == "1762870443737.jpg", "days_per_week"] <- "7 days per week"
+ws_data[which(ws_data$uuid == "e1461ccb-f514-4fc9-b676-64317e21f720"), "days_per_week"] <- "7 days per week"
 
 # daily_schedule
-ws_data[ws_data$source_photo == "1762870443737.jpg", "daily_schedule"] <- "All day"
+ws_data[which(ws_data$uuid == "e1461ccb-f514-4fc9-b676-64317e21f720"), "daily_schedule"] <- "All day"
 
 # opening_time
-ws_data[ws_data$source_photo == "1762870443737.jpg", "opening_time"] <- "5am"
-ws_data[ws_data$source_photo == "1763118663989.jpg", "opening_time"] <- "7am"
+ws_data[which(ws_data$uuid == "e1461ccb-f514-4fc9-b676-64317e21f720"), "opening_time"] <- "5am"
+ws_data[which(ws_data$uuid == "a729b65d-9329-48fb-8869-e77b984d1664"), "opening_time"] <- "7am"
 
 # percent_women_gatherers
-ws_data[ws_data$source_photo == "1763208229214.jpg", "percent_women_gatherers"] <- 60
-ws_data[ws_data$source_photo == "1763211388128.jpg", "percent_women_gatherers"] <- 70
-ws_data[ws_data$source_photo == "1763200512880.jpg", "percent_women_gatherers"] <- 70
-ws_data[ws_data$source_photo == "1763207174198.jpg", "percent_women_gatherers"] <- 70
-ws_data[ws_data$source_photo == "1763212023654.jpg", "percent_women_gatherers"] <- 75
-ws_data[ws_data$source_photo == "1763215463057.jpg", "percent_women_gatherers"] <- 80
-ws_data[ws_data$source_photo == "1763203048324.jpg", "percent_women_gatherers"] <- 80
-ws_data[ws_data$source_photo == "1763210997150.jpg", "percent_women_gatherers"] <- 80
-ws_data[ws_data$source_photo == "1763215236980.jpg", "percent_women_gatherers"] <- 80
-ws_data[ws_data$source_photo == "1763289940199.jpg", "percent_women_gatherers"] <- 50
+ws_data[which(ws_data$uuid == "3ddc613b-c3b1-445a-ae68-d1349ef3f9d8"), "percent_women_gatherers"] <- 60
+ws_data[which(ws_data$uuid == "ddebded1-64b7-42c4-b1af-461cc41ad0a4"), "percent_women_gatherers"] <- 70
+ws_data[which(ws_data$uuid == "66bba983-f4bc-4fd7-9440-2f1a31217366"), "percent_women_gatherers"] <- 70
+ws_data[which(ws_data$uuid == "ed0acb58-9d67-4932-9462-3f0a3767ab83"), "percent_women_gatherers"] <- 70
+ws_data[which(ws_data$uuid == "1b394e64-b43c-4bbb-aa3a-46c105607834"), "percent_women_gatherers"] <- 75
+ws_data[which(ws_data$uuid == "c9101077-45bc-4aab-b7b5-2303fd4b2832"), "percent_women_gatherers"] <- 80
+ws_data[which(ws_data$uuid == "d750e54d-59d0-4c9d-87ee-af97b64d7c7c"), "percent_women_gatherers"] <- 80
+ws_data[which(ws_data$uuid == "73ea109c-aaa1-4cbb-8725-15a3ad6a7083"), "percent_women_gatherers"] <- 80
+ws_data[which(ws_data$uuid == "07f899e4-09ab-4976-851e-24649547a9a9"), "percent_women_gatherers"] <- 80
+ws_data[which(ws_data$uuid == "fce203c6-d2ee-40ff-80ae-b73e75b22a8b"), "percent_women_gatherers"] <- 50
 
 # GPS Location Filtering ####
 buffer_distance <- 200
