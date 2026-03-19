@@ -509,6 +509,7 @@ ws_data[ws_data$uuid == "deb5b27c-3eab-450a-8d5f-fb6be3b93ee3", "wsid"] <- "P069
 ws_data[ws_data$uuid == "661d62ab-4b59-415d-a630-1e6cacd593bf", "wsid"] <- "P070" 
 ws_data[ws_data$uuid == "a391b517-7036-466d-8785-90a163deef96", "wsid"] <- "D138"
 ws_data[ws_data$uuid == "ceb549b1-2257-4835-aca8-f53025ca66a7", "wsid"] <- "D046"
+ws_data[ws_data$uuid == "d61cd97f-b1f7-4c0a-9b9d-d95986aba241", "wsid"] <- "D070"
 
 ws_data[ws_data$uuid == "8a0ffb38-4284-4393-92d3-d98a50d896ea", "surveyor_name"] <- "Sinneh" 
 
@@ -519,10 +520,12 @@ ws_data <- ws_data[ws_data$uuid != "1e7398b9-3642-4772-8158-f6e9cb6f7fcc", ]
 ws_data <- ws_data[ws_data$uuid != "b5bc8a3b-50e9-4e52-aae2-999f5c328d25", ] # Boboieh and Joseph mapped this in November
 ws_data <- ws_data[ws_data$uuid != "30fd3ad1-19f9-4c15-a983-06c096cb2877", ] # Boboieh and Jamiatu mapped this in November
 ws_data <- ws_data[ws_data$uuid != "49bd4e74-9af5-4785-b639-fb24457ef9d3", ] # Boboieh and Jamiatu mapped this in November
+ws_data <- ws_data[ws_data$uuid != "2d431b58-27be-4577-a189-d2e4ae8d8c1d", ] # Sinneh says that this is the same as D070, and was found twice in November.
 ws_data <- ws_data[ws_data$wsid != "P033", ] #This is a duplicate that both Abdulais have been surveying
 ws_data <- ws_data[ws_data$wsid != "C024", ] # This was never a public water source
 ws_data <- ws_data[ws_data$wsid != "D154", ] # Sinneh says ths is the same as D127
 ws_data <- ws_data[ws_data$wsid != "D155", ] # Sinneh says ths is the same as D128
+ws_data <- ws_data[ws_data$wsid != "D158", ] # Sinneh says ths is the same as D137
 
 # Individual Field Corrections ####
 # community
@@ -531,6 +534,8 @@ ws_data[which(ws_data$uuid == "830d8597-d9de-45ad-864c-ff79f9ff4a97"), "communit
 # zone
 ws_data[which(ws_data$uuid == "830d8597-d9de-45ad-864c-ff79f9ff4a97"), "zone"] <- "Nigeria"
 ws_data[which(ws_data$uuid == "48f11b8b-1b6c-4b24-a9f7-070771738abb"), "zone"] <- "Portee Wharf"
+ws_data[which(ws_data$uuid == "d61cd97f-b1f7-4c0a-9b9d-d95986aba241"), "zone"] <- "Morocco"
+ws_data[which(ws_data$uuid == "830d8597-d9de-45ad-864c-ff79f9ff4a97"), "zone"] <- "Nigeria"
 
 # respondent_name
 ws_data[which(ws_data$uuid == "830d8597-d9de-45ad-864c-ff79f9ff4a97"), "respondent_name"] <- "Ibrahim Jalloh"
