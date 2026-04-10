@@ -315,6 +315,8 @@ hh_data[hh_data$uuid == "20bbff41-5fa0-474d-874a-0d67251e3005", "surveyor_name"]
 hh_data[hh_data$uuid == "1ead9361-25b6-482d-ab9a-33e7ee080f41", "surveyor_name"] <- "Boboieh"
 hh_data[hh_data$uuid == "d8e52dca-4764-4077-ba08-76b6e7469871", "surveyor_name"] <- "Abdulai K"
 
+hh_data[hh_data$community == "Cockle Bay" & hh_data$survey_date == as.Date("2026-04-06") & hh_data$surveyor_name == "Musa", "surveyor_name"] <- "Joana"
+
 # HHID Corrections ####
 
 hh_data[hh_data$uuid == "35c4a5b2-74c4-4e7b-aed4-d3145fe52725", "hhid"] <- "D002"
