@@ -268,7 +268,10 @@ remove_uuids <- c(
   "4f42fbe1-e9b2-42de-a25c-3e39636c6aa6", # Jamiatu did this household twice, unknown reason why
   "3f703b25-d6ec-4378-962e-60b7c8a4f26e", # Jamiatu did the survey, but this is Boboieh's responsibility.
   "ace07a79-7334-4340-8946-96524ebd8915", # Musa did this hh twice in 2 days.
-  "d6cfcc03-90dc-478b-8a58-c7ee48a83162" # Jamiatu did this household twice, unknown reason why
+  "d6cfcc03-90dc-478b-8a58-c7ee48a83162", # Jamiatu did this household twice, unknown reason why
+  "fada0ab4-7579-4e19-8a7f-54fb92be8799",  # Musa surveyed C153 twice, keep Apr 13
+  "7c73358f-8f12-4d70-ac22-b8e638288172",  # Jamiatu surveyed D319 twice on same day
+  "b03eb121-1d1b-4f59-9cca-c3347f6c4cda"  # D342 is Boboieh's responsibility, delete Jamiatu's
   )
 
 hh_data <- hh_data %>% filter(!uuid %in% remove_uuids)
@@ -305,6 +308,8 @@ hh_data[hh_data$uuid == "0c3a51ca-908a-4663-93bd-b4a3a492f93c", "survey_month"] 
 hh_data[hh_data$uuid == "2acb3d70-9e2e-472e-882b-4ba00df0cd61", "survey_month"] <- "Mar"
 hh_data[hh_data$uuid == "11ddd6c1-db24-4a39-8446-bbefbce28d73", "survey_month"] <- "Mar"
 hh_data[hh_data$uuid == "b51e7e88-3d9a-4e48-94ff-409daee2ab42", "survey_month"] <- "Mar"
+hh_data[hh_data$uuid == "70ac3965-abd1-427c-92f4-9a3a2a65a7a0", "survey_month"] <- "Apr"
+hh_data[hh_data$uuid == "2aedb410-4c62-4ad0-bc52-22a42277e16d", "survey_month"] <- "Apr"
 
 # Community Corrections ####
 hh_data[hh_data$uuid == "fc735327-7e52-4fbb-8075-396dba0bf9a5", "community"] <- "Dworzark"
@@ -1302,6 +1307,7 @@ hh_data[hh_data$uuid == "ae4ee2a4-cc22-4522-8bd1-0099469e2481", "training_receiv
 hh_data[hh_data$uuid == "8e7f6e0b-a072-46b6-9a01-3df75654347f", "training_received"] <- "No"
 hh_data[hh_data$uuid == "03beb62c-efd4-473a-92b6-3b310b4ea4d3", "training_received"] <- "No"
 hh_data[hh_data$uuid == "98d473c0-7fe9-4e8b-a0cb-9e7066f7596b", "training_received"] <- "No"
+hh_data[hh_data$uuid == "28c57caa-d778-4616-b3d7-fa19d67a072e", "injuries_water"] <- 0
 
 # Structural Corrections ####
 

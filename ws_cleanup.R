@@ -71,6 +71,8 @@ ws_data <- ws_data %>%
     )
   )
 
+ws_data <- ws_data %>% filter(!is.na(uuid))
+
 # Numeric Conversions ####
 ws_data <- ws_data %>%
   mutate(
@@ -701,6 +703,9 @@ ws_data <- ws_data %>%
   left_join(mean_gps %>% select(wsid, mean_gps), by = "wsid") %>%
   mutate(gps_location = if_else(!is.na(mean_gps), mean_gps, gps_location)) %>%
   select(-mean_gps)
+
+# Functional Status Imputation #### 
+ws_data$functional[is.na(ws_data$functional) & ws_data$survey_date < as.Date("2026-04-01")] <- "1"
 
 # Water Source Colors ####
 ws_colors <- c(
