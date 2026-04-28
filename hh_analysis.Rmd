@@ -950,12 +950,12 @@ create_connection_map <- function(hh_community, source_type = "drinking") {
 ## Cockle Bay
 
 ### Drinking Water Sources
-```{r cockle-drinking, cache = T}
+```{r cockle-drinking, cache = F}
 create_connection_map("Cockle Bay", "drinking")
 ```
 
 ### Domestic Water Sources
-```{r cockle-domestic, cache = T}
+```{r cockle-domestic, cache = F}
 create_connection_map("Cockle Bay", "domestic")
 ```
 
@@ -1826,4 +1826,124 @@ hh_data %>%
   theme(plot.title = element_text(hjust = 0.5, face = "bold"),
         legend.position = "bottom",
         axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Water Status vs Rainfall
+
+```{r ladder-rainfall-setup}
+jmp_levels   <- c("Surface water", "Unimproved", "Limited", "Basic")
+jmp_colors   <- c("Surface water" = "#d73027", "Unimproved" = "#fdae61",
+                  "Limited" = "#fee08b", "Basic" = "#1a9850")
+hwise_levels <- c("High (24-36)", "Moderate (12-23)",
+                  "Low (3-11)", "No-to-marginal (0-2)")
+hwise_colors <- c("No-to-marginal (0-2)" = "#1a9850", "Low (3-11)" = "#fee08b",
+                  "Moderate (12-23)" = "#fdae61", "High (24-36)" = "#d73027")
+
+mo_order    <- c("Nov", "Dec", "Jan", "Feb", "Mar", "Apr",
+                 "May", "Jun", "Jul", "Aug", "Sep", "Oct")
+rain_by_mon <- c(Jan = 0,    Feb = 2,    Mar = 0,    Apr = 32,
+                 May = 155,  Jun = 181,  Jul = 1079, Aug = 1009,
+                 Sep = 623,  Oct = 459,  Nov = 151,  Dec = 7)
+
+improved_src   <- c("Closed Well", "Private Tap", "Public Tap", "Spring",
+                    "Tank", "Sachet", "Rainwater", "My own source")
+unimproved_src <- c("Open Well")
+surface_src    <- c("Surface Water")
+
+ladder_df <- hh_data %>%
+  mutate(
+    walk = as.numeric(drinking_walk_time),
+    wait = as.numeric(drinking_wait_time),
+    trip_min = 2 * walk + wait,
+    src_class = case_when(
+      drinking_source_type %in% surface_src    ~ "Surface water",
+      drinking_source_type %in% unimproved_src ~ "Unimproved",
+      drinking_source_type %in% improved_src   ~ "Improved"
+    ),
+    jmp_ladder = case_when(
+      src_class == "Surface water"             ~ "Surface water",
+      src_class == "Unimproved"                ~ "Unimproved",
+      src_class == "Improved" & trip_min <= 30 ~ "Basic",
+      src_class == "Improved" & trip_min  > 30 ~ "Limited"
+    ),
+    hwise_cat = case_when(
+      hwise_total_score <= 2  ~ "No-to-marginal (0-2)",
+      hwise_total_score <= 11 ~ "Low (3-11)",
+      hwise_total_score <= 23 ~ "Moderate (12-23)",
+      TRUE                    ~ "High (24-36)"
+    ),
+    month_lab = factor(format(survey_date, "%b"), levels = mo_order)
+  ) %>%
+  filter(!is.na(jmp_ladder), !is.na(month_lab)) %>%
+  mutate(month_num = as.numeric(month_lab))
+
+jmp_part <- ladder_df %>%
+  count(month_lab, month_num, jmp_ladder) %>%
+  group_by(month_lab) %>% mutate(pct = n / sum(n) * 100) %>% ungroup() %>%
+  mutate(category = factor(jmp_ladder, levels = jmp_levels))
+
+hwise_part <- ladder_df %>%
+  count(month_lab, month_num, hwise_cat) %>%
+  group_by(month_lab) %>% mutate(pct = n / sum(n) * 100) %>% ungroup() %>%
+  mutate(category = factor(hwise_cat, levels = hwise_levels))
+
+rain_df <- tibble(month_lab = factor(mo_order, levels = mo_order),
+                  month_num = seq_along(mo_order),
+                  rain_mm   = unname(rain_by_mon[mo_order]))
+
+scale_max <- 1100
+k <- 100 / scale_max
+
+build_panel <- function(df, fills, title, legend_breaks = rev(names(fills))) {
+  ggplot() +
+    geom_col(data = df,
+             aes(x = month_num, y = pct, fill = category),
+             width = 0.65) +
+    geom_text(data = df,
+              aes(x = month_num, y = pct,
+                  label = ifelse(pct >= 8, sprintf("%.0f%%", pct), ""),
+                  group = category),
+              position = position_stack(vjust = 0.5),
+              color = "white", fontface = "bold", size = 3.5) +
+    geom_line(data = rain_df,
+              aes(x = month_num, y = rain_mm * k),
+              color = "#1f78b4", size = 1.2) +
+    geom_point(data = rain_df,
+               aes(x = month_num, y = rain_mm * k),
+               color = "#1f78b4", size = 2.6) +
+    scale_x_continuous(breaks = seq_along(mo_order), labels = mo_order,
+                       expand = expansion(add = 0.4)) +
+    scale_y_continuous(name = "% of households",
+                       limits = c(0, 110), breaks = seq(0, 100, 25),
+                       sec.axis = sec_axis(~ . / k, name = "Monthly rainfall (mm)",
+                                           breaks = seq(0, scale_max, 200))) +
+    scale_fill_manual(values = fills, name = NULL,
+                      breaks = legend_breaks,
+                      guide  = guide_legend(nrow = 1)) +
+    labs(title = title, x = NULL) +
+    theme_minimal(base_size = 13) +
+    theme(panel.grid.major.x = element_blank(),
+          axis.text.x        = element_text(face = "bold", size = 12),
+          axis.title.y.right = element_text(color = "#1f78b4"),
+          axis.text.y.right  = element_text(color = "#1f78b4"),
+          plot.title.position = "plot",
+          plot.title         = element_text(face = "bold", size = 14),
+          legend.position    = "bottom",
+          legend.key.size    = unit(1, "lines"),
+          legend.text        = element_text(size = 10))
+}
+```
+
+## HWISE water-insecurity vs rainfall
+
+```{r hwise-rainfall, fig.width=11, fig.height=6}
+build_panel(hwise_part, hwise_colors,
+            "HWISE water-insecurity category",
+            legend_breaks = names(hwise_colors))
+```
+
+## JMP service ladder vs rainfall
+
+```{r jmp-rainfall, fig.width=11, fig.height=6}
+build_panel(jmp_part, jmp_colors, "JMP service ladder")
 ```
