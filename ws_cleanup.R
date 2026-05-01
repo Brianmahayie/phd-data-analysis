@@ -512,6 +512,15 @@ ws_data[ws_data$uuid == "661d62ab-4b59-415d-a630-1e6cacd593bf", "wsid"] <- "P070
 ws_data[ws_data$uuid == "a391b517-7036-466d-8785-90a163deef96", "wsid"] <- "D138"
 ws_data[ws_data$uuid == "ceb549b1-2257-4835-aca8-f53025ca66a7", "wsid"] <- "D046"
 ws_data[ws_data$uuid == "d61cd97f-b1f7-4c0a-9b9d-d95986aba241", "wsid"] <- "D070"
+# Duplicate matches (from first proximity check)
+ws_data[which(ws_data$uuid == "30fd3ad1-19f9-4c15-a983-06c096cb2877"), "wsid"] <- "D129"
+ws_data[which(ws_data$uuid == "b5bc8a3b-50e9-4e52-aae2-999f5c328d25"), "wsid"] <- "D138"
+
+# Gap-filling matches
+ws_data[which(ws_data$uuid == "c1d521e2-9eeb-422f-ba8a-c5fbabe4dc09"), "wsid"] <- "D170"
+ws_data[which(ws_data$uuid == "67a1fcda-7f3e-4db4-b172-1a38483b275c"), "wsid"] <- "D179"
+ws_data[which(ws_data$uuid == "74f2d77e-681e-468b-9e7c-65ca8b9541a5"), "wsid"] <- "D178"
+ws_data[which(ws_data$uuid == "7584d12b-14e3-44ff-9cb4-62f9f5d30fe6"), "wsid"] <- "D175"
 
 ws_data[ws_data$uuid == "8a0ffb38-4284-4393-92d3-d98a50d896ea", "surveyor_name"] <- "Sinneh" 
 
@@ -538,6 +547,7 @@ ws_data[which(ws_data$uuid == "830d8597-d9de-45ad-864c-ff79f9ff4a97"), "zone"] <
 ws_data[which(ws_data$uuid == "48f11b8b-1b6c-4b24-a9f7-070771738abb"), "zone"] <- "Portee Wharf"
 ws_data[which(ws_data$uuid == "d61cd97f-b1f7-4c0a-9b9d-d95986aba241"), "zone"] <- "Morocco"
 ws_data[which(ws_data$uuid == "830d8597-d9de-45ad-864c-ff79f9ff4a97"), "zone"] <- "Nigeria"
+ws_data[which(ws_data$uuid == "0319f35d-33a4-402f-a9b1-d3f0c9d77fca"), "zone"] <- "Mafengbeh"
 
 # respondent_name
 ws_data[which(ws_data$uuid == "830d8597-d9de-45ad-864c-ff79f9ff4a97"), "respondent_name"] <- "Ibrahim Jalloh"
