@@ -313,6 +313,7 @@ hh_data[hh_data$uuid == "2aedb410-4c62-4ad0-bc52-22a42277e16d", "survey_month"] 
 hh_data[hh_data$uuid == "f416a478-4a78-4bce-a18d-b0cac738ce21", "survey_month"] <- "Apr"
 hh_data[hh_data$uuid == "cb02733c-4d02-48eb-8381-bfcea51ad251", "survey_month"] <- "Apr"
 hh_data[hh_data$uuid == "317c3acc-b1c9-44ab-bea0-542fcad5d854", "survey_month"] <- "Apr"
+hh_data[hh_data$uuid == "2cd43089-f1f7-4c5c-9163-fc2e7342d9be", "survey_month"] <- "May"
 
 # Community Corrections ####
 hh_data[hh_data$uuid == "fc735327-7e52-4fbb-8075-396dba0bf9a5", "community"] <- "Dworzark"
