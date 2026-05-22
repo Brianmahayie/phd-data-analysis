@@ -524,6 +524,18 @@ ws_data[which(ws_data$uuid == "7584d12b-14e3-44ff-9cb4-62f9f5d30fe6"), "wsid"] <
 
 ws_data[ws_data$uuid == "8a0ffb38-4284-4393-92d3-d98a50d896ea", "surveyor_name"] <- "Sinneh" 
 
+d012_placeholder <- ws_data %>%
+  filter(wsid == "D012") %>%
+  slice(1) %>%
+  mutate(
+    uuid = NA_character_,
+    survey_date = as.Date("2026-05-01"),
+    display_month = factor("May", levels = levels(ws_data$display_month)),
+    functional = "0",
+    month = factor("May", levels = levels(ws_data$month))
+  )
+ws_data <- bind_rows(ws_data, d012_placeholder)
+
 # Vital Corrections ####
 ws_data <- ws_data[ws_data$uuid != "6260d134-2d8b-4521-bb70-9df99dc3acab", ]
 ws_data <- ws_data[ws_data$uuid != "ea2472f6-adfb-41b7-90da-50fb074cdbf3", ]
@@ -532,11 +544,13 @@ ws_data <- ws_data[ws_data$uuid != "b5bc8a3b-50e9-4e52-aae2-999f5c328d25", ] # B
 ws_data <- ws_data[ws_data$uuid != "30fd3ad1-19f9-4c15-a983-06c096cb2877", ] # Boboieh and Jamiatu mapped this in November
 ws_data <- ws_data[ws_data$uuid != "49bd4e74-9af5-4785-b639-fb24457ef9d3", ] # Boboieh and Jamiatu mapped this in November
 ws_data <- ws_data[ws_data$uuid != "2d431b58-27be-4577-a189-d2e4ae8d8c1d", ] # Sinneh says that this is the same as D070, and was found twice in November.
-ws_data <- ws_data[ws_data$wsid != "P033", ] #This is a duplicate that both Abdulais have been surveying
-ws_data <- ws_data[ws_data$wsid != "C024", ] # This was never a public water source
-ws_data <- ws_data[ws_data$wsid != "D154", ] # Sinneh says ths is the same as D127
-ws_data <- ws_data[ws_data$wsid != "D155", ] # Sinneh says ths is the same as D128
-ws_data <- ws_data[ws_data$wsid != "D158", ] # Sinneh says ths is the same as D137
+ws_data <- ws_data[ws_data$wsid != "P033" | is.na(ws_data$wsid), ] #This is a duplicate that both Abdulais have been surveying
+ws_data <- ws_data[ws_data$wsid != "C024" | is.na(ws_data$wsid), ] # This was never a public water source
+ws_data <- ws_data[ws_data$wsid != "D154" | is.na(ws_data$wsid), ] # Sinneh says ths is the same as D127
+ws_data <- ws_data[ws_data$wsid != "D155" | is.na(ws_data$wsid), ] # Sinneh says ths is the same as D128
+ws_data <- ws_data[ws_data$wsid != "D158" | is.na(ws_data$wsid), ] # Sinneh says ths is the same as D137
+ws_data <- ws_data[ws_data$wsid != "D159" | is.na(ws_data$wsid), ] # Sinneh says this is the same as D140
+ws_data <- ws_data[ws_data$wsid != "D136" | is.na(ws_data$wsid), ] # Sinneh says this is the same as D149
 
 # Individual Field Corrections ####
 # community

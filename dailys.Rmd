@@ -47,21 +47,19 @@ surveyor_targets <- hh_daily %>%
   distinct(hhid, resp_surveyor) %>%
   count(resp_surveyor, name = "target") %>%
   filter(!resp_surveyor %in% c("Unknown"))
-
 current_month_hhids <- hh_current %>%
   filter(!is.na(hhid)) %>%
   distinct(hhid)
-
 surveyor_completed <- hh_daily %>%
   filter(!is.na(hhid)) %>%
   distinct(hhid, resp_surveyor) %>%
   filter(hhid %in% current_month_hhids$hhid) %>%
   count(resp_surveyor, name = "completed")
-
 surveyor_progress <- surveyor_targets %>%
   left_join(surveyor_completed, by = "resp_surveyor") %>%
   replace_na(list(completed = 0)) %>%
-  mutate(remaining = target - completed)
+  mutate(target = ifelse(resp_surveyor == "Boboieh", target - 1, target),
+         remaining = target - completed)
 ```
 
 **Total**: `r sum(surveyor_progress$completed)`/`r sum(surveyor_progress$target)` surveys completed, **`r sum(surveyor_progress$remaining)`** remaining
@@ -536,7 +534,8 @@ missing_hh_table("Abdulai K")
 missing_hh_table("Jamiatu")
 ```
 
-## Boboieh (`r missing_hh_count("Boboieh")` remaining)
+## Boboieh (`r missing_hh_count("Boboieh")-1` remaining)
+
 ```{r missing_hh_boboieh}
 missing_hh_table("Boboieh")
 ```
