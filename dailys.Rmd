@@ -534,7 +534,7 @@ missing_hh_table("Abdulai K")
 missing_hh_table("Jamiatu")
 ```
 
-## Boboieh (`r missing_hh_count("Boboieh")-1` remaining)
+## Boboieh (`r missing_hh_count("Boboieh")` remaining)
 
 ```{r missing_hh_boboieh}
 missing_hh_table("Boboieh")

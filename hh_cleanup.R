@@ -271,7 +271,11 @@ remove_uuids <- c(
   "d6cfcc03-90dc-478b-8a58-c7ee48a83162", # Jamiatu did this household twice, unknown reason why
   "fada0ab4-7579-4e19-8a7f-54fb92be8799",  # Musa surveyed C153 twice, keep Apr 13
   "7c73358f-8f12-4d70-ac22-b8e638288172",  # Jamiatu surveyed D319 twice on same day
-  "b03eb121-1d1b-4f59-9cca-c3347f6c4cda"  # D342 is Boboieh's responsibility, delete Jamiatu's
+  "b03eb121-1d1b-4f59-9cca-c3347f6c4cda",  # D342 is Boboieh's responsibility, delete Jamiatu's
+  "2339f03d-c279-4641-919a-486f288c9485",  # Boboieh surveyed D041 twice, keep May 5
+  "ba828a79-7928-47d6-8fe8-18b4e31afbea",  # Jamiatu surveyed D262 twice on same day
+  "49303b21-421f-48f1-8304-1ce267eccde7",  # D342 is Boboieh's responsibility, delete Jamiatu's
+  "4227f41a-c3fc-43f2-908a-ac609041be42"  # P067 is Abdulai K's responsibility, delete Abdulai B's
   )
 
 hh_data <- hh_data %>% filter(!uuid %in% remove_uuids)
@@ -314,6 +318,11 @@ hh_data[hh_data$uuid == "f416a478-4a78-4bce-a18d-b0cac738ce21", "survey_month"] 
 hh_data[hh_data$uuid == "cb02733c-4d02-48eb-8381-bfcea51ad251", "survey_month"] <- "Apr"
 hh_data[hh_data$uuid == "317c3acc-b1c9-44ab-bea0-542fcad5d854", "survey_month"] <- "Apr"
 hh_data[hh_data$uuid == "2cd43089-f1f7-4c5c-9163-fc2e7342d9be", "survey_month"] <- "May"
+hh_data[hh_data$uuid == "45c4d2cc-0aa8-41af-8694-fd540154df75", "survey_month"] <- "May"
+hh_data[hh_data$uuid == "47cb4df7-1494-4a75-b399-292b0355c591", "survey_month"] <- "May"
+hh_data[hh_data$uuid == "494b1bb2-6903-4a67-8a0f-e01c58ca8e9d", "survey_month"] <- "May"
+hh_data[hh_data$uuid == "eb795dd2-635d-4981-b316-fdedc0eebfa6", "survey_month"] <- "May"
+
 
 # Community Corrections ####
 hh_data[hh_data$uuid == "fc735327-7e52-4fbb-8075-396dba0bf9a5", "community"] <- "Dworzark"
@@ -1129,6 +1138,8 @@ hh_data[hh_data$uuid == "bf1759ab-67b2-41e6-808b-7a01d690d587", "domestic_potabl
 
 hh_data[hh_data$uuid == "9273eecb-9242-4bae-8fc1-32131b7469fd", "domestic_source_notes"] <- "It's an illegal cut pipe. Only access in the rainy season"
 
+hh_data[hh_data$uuid == "b1c93c87-0a58-4ca5-bcd7-22a70b563982", "collection_freq"] <- "Every 2 days"
+
 hh_data[hh_data$uuid == "4f46ca4d-2cad-423c-9b36-a365f8fc79bd", "domestic_source_selection"] <- "89aaf60b-dc5b-497c-912d-028b27a8fc6f"
 hh_data[hh_data$uuid == "f142d150-0b0e-4a01-af08-b4c03526da14", "domestic_source_selection"] <- "5b0b68e9-e2c1-4ca0-81db-e9af63f4ca81"
 hh_data[hh_data$uuid == "1c67a3f5-84a5-423b-9250-e85e44bed5f9", "domestic_source_selection"] <- "Own"
@@ -1421,6 +1432,7 @@ hh_data <- hh_data %>%
     girls_attend_school = if_else(replace_flag, girls_attend_school_ref, girls_attend_school)
   ) %>%
   select(-ends_with("_dec"), -ends_with("_jan"), -ends_with("_ref"), -replace_flag, -hh_total)
+
 
 # GPS Location Triangulation ####
 

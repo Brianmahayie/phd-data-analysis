@@ -29,10 +29,8 @@ source("ws_cleanup.R")
 ```
 
 ```{r case_counts}
-# Calculate counts and complete cases for each community
 month_order <- c("Nov", "Jan", "Mar", "May", "Jul", "Sep")
 
-# Function to calculate complete cases
 calculate_complete <- function(data, current_month) {
   months_up_to <- month_order[1:which(month_order == current_month)]
   
@@ -44,12 +42,10 @@ calculate_complete <- function(data, current_month) {
     nrow()
 }
 
-# Calculate for each community in specified order
 communities <- c("Cockle Bay", "Dworzark", "Portee Rokupa")
 results <- map_df(communities, function(comm) {
   comm_data <- ws_data %>% filter(community == comm)
   
-  # Get unique wsids for this community
   comm_wsids <- comm_data %>%
     filter(!is.na(wsid)) %>%
     distinct(wsid) %>%
@@ -61,6 +57,8 @@ results <- map_df(communities, function(comm) {
     count(display_month, .drop = FALSE) %>%
     pivot_wider(names_from = display_month, values_from = n, values_fill = 0)
   
+  survey_total <- sum(unlist(counts[, intersect(month_order, names(counts))]))
+  
   complete_cases <- tibble(
     display_month = month_order
   ) %>%
@@ -68,7 +66,6 @@ results <- map_df(communities, function(comm) {
     mutate(complete = calculate_complete(comm_data, display_month)) %>%
     pivot_wider(names_from = display_month, values_from = complete, values_fill = 0)
   
-  # Combine counts and complete cases with line break
   combined <- counts
   for (month in month_order) {
     if (month %in% names(counts) && month %in% names(complete_cases)) {
@@ -82,11 +79,9 @@ results <- map_df(communities, function(comm) {
   
   combined %>%
     mutate(community = comm,
-           Total = comm_data %>% distinct(wsid) %>% nrow())
+           Total = survey_total)
 })
 
-# Add totals row
-# Get total unique wsids across all communities
 total_wsids <- ws_data %>%
   filter(!is.na(wsid)) %>%
   distinct(wsid) %>%
@@ -98,6 +93,8 @@ totals_counts <- ws_data %>%
   count(display_month, .drop = FALSE) %>%
   pivot_wider(names_from = display_month, values_from = n, values_fill = 0)
 
+total_survey_total <- sum(unlist(totals_counts[, intersect(month_order, names(totals_counts))]))
+
 totals_complete <- tibble(
   display_month = month_order
 ) %>%
@@ -105,7 +102,6 @@ totals_complete <- tibble(
   mutate(complete = calculate_complete(ws_data, display_month)) %>%
   pivot_wider(names_from = display_month, values_from = complete, values_fill = 0)
 
-# Combine totals counts and complete cases with line break
 totals <- totals_counts
 for (month in month_order) {
   if (month %in% names(totals_counts) && month %in% names(totals_complete)) {
@@ -119,9 +115,8 @@ for (month in month_order) {
 
 totals <- totals %>%
   mutate(community = "Total",
-         Total = total_wsids)
+         Total = total_survey_total)
 
-# Combine and format
 final_table <- results %>%
   bind_rows(totals) %>%
   rename(Community = community) %>%
@@ -133,6 +128,8 @@ final_table <- results %>%
 
 final_table
 ```
+
+Changed `Total` from unique wsids to the sum of surveys across all months.
 
 ## Mapping Source Type
 
