@@ -275,7 +275,10 @@ remove_uuids <- c(
   "2339f03d-c279-4641-919a-486f288c9485",  # Boboieh surveyed D041 twice, keep May 5
   "ba828a79-7928-47d6-8fe8-18b4e31afbea",  # Jamiatu surveyed D262 twice on same day
   "49303b21-421f-48f1-8304-1ce267eccde7",  # D342 is Boboieh's responsibility, delete Jamiatu's
-  "4227f41a-c3fc-43f2-908a-ac609041be42"  # P067 is Abdulai K's responsibility, delete Abdulai B's
+  "4227f41a-c3fc-43f2-908a-ac609041be42", # P067 is Abdulai K's responsibility, delete Abdulai B's
+  "194b4da7-15c4-45c6-bc44-19642549acb1",  # Musa surveyed C051 twice on same day, keep Kamara
+  "6a2e0902-ff66-4fc8-aae1-149c8062482a",  # Jamiatu surveyed D229 twice on same day
+  "049f2f60-8f71-4682-824f-65ecb957bb0b"  # D342 is Boboieh's responsibility, delete Jamiatu's
   )
 
 hh_data <- hh_data %>% filter(!uuid %in% remove_uuids)
@@ -322,6 +325,8 @@ hh_data[hh_data$uuid == "45c4d2cc-0aa8-41af-8694-fd540154df75", "survey_month"] 
 hh_data[hh_data$uuid == "47cb4df7-1494-4a75-b399-292b0355c591", "survey_month"] <- "May"
 hh_data[hh_data$uuid == "494b1bb2-6903-4a67-8a0f-e01c58ca8e9d", "survey_month"] <- "May"
 hh_data[hh_data$uuid == "eb795dd2-635d-4981-b316-fdedc0eebfa6", "survey_month"] <- "May"
+hh_data[hh_data$uuid == "3727c90a-1861-4766-bf35-7cc02c73242a", "survey_month"] <- "Jun"
+hh_data[hh_data$uuid == "852b52f6-e0e2-4464-99ad-9de803272274", "survey_month"] <- "Jun"
 
 
 # Community Corrections ####
@@ -1238,6 +1243,7 @@ hh_data[hh_data$uuid == "381f7f3e-b3a5-4a51-a8b1-319664ad5954", "drinking_wait_t
 hh_data[hh_data$uuid == "3eb4df93-80a4-46da-98fe-c2139f602f12", "drinking_walk_time"] <- 15
 hh_data[hh_data$uuid == "83d4d552-d91e-47b9-8a54-5cbd818ccbd5", "drinking_walk_time"] <- 0
 hh_data[hh_data$uuid == "4327f4a6-0e24-4954-87d2-56b6b8535c6b", "drinking_walk_time"] <- 2
+hh_data[hh_data$uuid == "bd8ce19b-74cb-4808-9193-8430af28b7f8", "morning_specific_time"] <- "7am"
 
 hh_data[hh_data$uuid == "98d473c0-7fe9-4e8b-a0cb-9e7066f7596b", "drinking_water_daily_spend"] <- 20
 hh_data[hh_data$uuid == "8af210bb-e2a3-4f0b-8a18-353a1702c891", "drinking_water_daily_spend"] <- 20
