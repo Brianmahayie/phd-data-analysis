@@ -523,14 +523,13 @@ ws_data[which(ws_data$uuid == "c1d521e2-9eeb-422f-ba8a-c5fbabe4dc09"), "wsid"] <
 ws_data[which(ws_data$uuid == "67a1fcda-7f3e-4db4-b172-1a38483b275c"), "wsid"] <- "D179"
 ws_data[which(ws_data$uuid == "74f2d77e-681e-468b-9e7c-65ca8b9541a5"), "wsid"] <- "D178"
 ws_data[which(ws_data$uuid == "7584d12b-14e3-44ff-9cb4-62f9f5d30fe6"), "wsid"] <- "D175"
-
 ws_data[ws_data$uuid == "8a0ffb38-4284-4393-92d3-d98a50d896ea", "surveyor_name"] <- "Sinneh" 
 
 d012_placeholder <- ws_data %>%
   filter(wsid == "D012") %>%
   slice(1) %>%
   mutate(
-    uuid = NA_character_,
+    uuid = "placeholder-D012-may",
     survey_date = as.Date("2026-05-01"),
     display_month = factor("May", levels = levels(ws_data$display_month)),
     functional = "0",
@@ -553,6 +552,27 @@ ws_data <- ws_data[ws_data$wsid != "D155" | is.na(ws_data$wsid), ] # Sinneh says
 ws_data <- ws_data[ws_data$wsid != "D158" | is.na(ws_data$wsid), ] # Sinneh says ths is the same as D137
 ws_data <- ws_data[ws_data$wsid != "D159" | is.na(ws_data$wsid), ] # Sinneh says this is the same as D140
 ws_data <- ws_data[ws_data$wsid != "D136" | is.na(ws_data$wsid), ] # Sinneh says this is the same as D149
+# January WS duplicates
+ws_data <- ws_data[ws_data$uuid != "44f78643-acd1-4574-a470-50ef6c2a3379" | is.na(ws_data$uuid), ] # D105 Sinneh duplicate same day
+ws_data <- ws_data[ws_data$uuid != "0cb2cf0c-1c88-4d24-9e0d-fad4864fc29e" | is.na(ws_data$uuid), ] # D183 Sinneh duplicate same day
+ws_data <- ws_data[ws_data$uuid != "92409d40-9b37-4cff-b924-6c91e518782d" | is.na(ws_data$uuid), ] # D184 Sinneh duplicate same day
+ws_data <- ws_data[ws_data$uuid != "27dcb323-f4c0-416c-9b34-554338dddef0" | is.na(ws_data$uuid), ] # P044 Abdulai K duplicate
+ws_data <- ws_data[ws_data$uuid != "7471ff1f-8081-48cb-8530-2cef81b02871" | is.na(ws_data$uuid), ] # P068 Abdulai K duplicate
+ws_data <- ws_data[ws_data$uuid != "13164e3d-9e6e-412f-a89a-ba5b332ef32d" | is.na(ws_data$uuid), ] # P070 Abdulai K duplicate
+# March WS duplicates
+ws_data <- ws_data[ws_data$uuid != "a5c7d667-0501-4c5f-b99c-4b8fb1fb41b0" | is.na(ws_data$uuid), ] # D116 Sinneh duplicate same day
+ws_data <- ws_data[ws_data$uuid != "0a0c1d92-3e2c-4fc6-a04b-31561a7b061e" | is.na(ws_data$uuid), ] # P020 Abdulai K duplicate
+ws_data <- ws_data[ws_data$uuid != "efedca58-f6d9-447f-a3e4-90ea3c33567c" | is.na(ws_data$uuid), ] # P055 Abdulai B duplicate
+# May WS duplicates
+ws_data <- ws_data[ws_data$uuid != "ef0ccefd-592b-4d88-9d80-2780e7f45caa" | is.na(ws_data$uuid), ] # D002 Sinneh duplicate
+ws_data <- ws_data[ws_data$uuid != "06891718-e204-4e50-8705-ac73fdb2f9c3" | is.na(ws_data$uuid), ] # D022 Sinneh duplicate
+ws_data <- ws_data[ws_data$uuid != "038039d2-9aa6-4f32-9943-39db45dd2592" | is.na(ws_data$uuid), ] # D038 Sinneh duplicate
+ws_data <- ws_data[ws_data$uuid != "3c558c5d-9b78-4b32-afe5-d88fd0ae3b80" | is.na(ws_data$uuid), ] # D071 Sinneh duplicate same day
+ws_data <- ws_data[ws_data$uuid != "2222724e-2a2d-46a5-941a-1f4585f848cd" | is.na(ws_data$uuid), ] # D078 Sinneh duplicate
+ws_data <- ws_data[ws_data$uuid != "496b8344-9283-40a6-91d6-2d3fe3657a38" | is.na(ws_data$uuid), ] # D087 Sinneh duplicate
+ws_data <- ws_data[ws_data$uuid != "6563ae6d-3ea3-48c5-8d5e-c7700d9c5c10" | is.na(ws_data$uuid), ] # D110 Sinneh duplicate same day
+ws_data <- ws_data[ws_data$uuid != "b45bae7a-6526-48cc-800c-7bc2b276c132" | is.na(ws_data$uuid), ] # D153 keep second (more complete)
+ws_data <- ws_data[ws_data$uuid != "83482b0b-5ba8-45c9-bca2-804575afc638" | is.na(ws_data$uuid), ] # P001 keep second (more complete)
 
 # Individual Field Corrections ####
 # community

@@ -278,7 +278,16 @@ remove_uuids <- c(
   "4227f41a-c3fc-43f2-908a-ac609041be42", # P067 is Abdulai K's responsibility, delete Abdulai B's
   "194b4da7-15c4-45c6-bc44-19642549acb1",  # Musa surveyed C051 twice on same day, keep Kamara
   "6a2e0902-ff66-4fc8-aae1-149c8062482a",  # Jamiatu surveyed D229 twice on same day
-  "049f2f60-8f71-4682-824f-65ecb957bb0b"  # D342 is Boboieh's responsibility, delete Jamiatu's
+  "049f2f60-8f71-4682-824f-65ecb957bb0b",  # D342 is Boboieh's responsibility, delete Jamiatu's
+  "a2706012-6824-4aff-8a55-1ed66c974617",  # Jamiatu surveyed D074 twice in April
+  "3cb2e76d-7266-436a-87c8-d9845cb244d6",  # D026 duplicate May
+  "17d60386-8cdf-4611-8270-fa928100c30e",  # D032 duplicate May
+  "efd399a3-4fc3-445b-bac5-fd0ea8fbbd9f",  # D033 duplicate May
+  "05013044-d8a0-4985-b1d1-bfea49ec1a1e",  # D154 duplicate May
+  "cf401c54-ac21-4d34-a06b-f46221381ee2",  # D155 duplicate May
+  "91dfc35e-0839-4e53-ab2e-5fc64f9a04ad",  # D157 duplicate May
+  "0c4dbc9f-7635-4df8-9edc-cf9fd204494f",  # D159 duplicate May
+  "c12611ba-84d2-4fa8-afee-e914ec84ec1b"  # D160 duplicate May
   )
 
 hh_data <- hh_data %>% filter(!uuid %in% remove_uuids)
@@ -327,6 +336,9 @@ hh_data[hh_data$uuid == "494b1bb2-6903-4a67-8a0f-e01c58ca8e9d", "survey_month"] 
 hh_data[hh_data$uuid == "eb795dd2-635d-4981-b316-fdedc0eebfa6", "survey_month"] <- "May"
 hh_data[hh_data$uuid == "3727c90a-1861-4766-bf35-7cc02c73242a", "survey_month"] <- "Jun"
 hh_data[hh_data$uuid == "852b52f6-e0e2-4464-99ad-9de803272274", "survey_month"] <- "Jun"
+hh_data[hh_data$uuid == "4cba7935-5fcd-4fec-9b77-6dba1df078af", "survey_month"] <- "Jan"
+hh_data[hh_data$uuid == "b38bd3ea-085f-4af6-947f-ff17fd86b6ab", "survey_month"] <- "Jan"
+hh_data[hh_data$uuid == "c6b0899b-b387-4091-ab2d-5c8fd7571f9e", "survey_month"] <- "Jan"
 
 
 # Community Corrections ####
