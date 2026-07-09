@@ -58,8 +58,7 @@ surveyor_completed <- hh_daily %>%
 surveyor_progress <- surveyor_targets %>%
   left_join(surveyor_completed, by = "resp_surveyor") %>%
   replace_na(list(completed = 0)) %>%
-  mutate(target = ifelse(resp_surveyor == "Boboieh", target - 1, target),
-         remaining = target - completed)
+  mutate(remaining = target - completed)
 ```
 
 **Total**: `r sum(surveyor_progress$completed)`/`r sum(surveyor_progress$target)` surveys completed, **`r sum(surveyor_progress$remaining)`** remaining

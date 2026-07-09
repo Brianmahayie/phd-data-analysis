@@ -44,7 +44,9 @@ names(ws_data) <- names(ws_data) %>%
 dup_names <- names(ws_data)[duplicated(names(ws_data))]
 for (dn in unique(dup_names)) {
   cols <- which(names(ws_data) == dn)
-  ws_data[[cols[1]]] <- coalesce(ws_data[[cols[1]]], ws_data[[cols[2]]])
+  for (k in 2:length(cols)) {
+    ws_data[[cols[1]]] <- coalesce(ws_data[[cols[1]]], ws_data[[cols[k]]])
+  }
 }
 ws_data <- ws_data[, !duplicated(names(ws_data))]
 ws_data$uuid <- ws_uuid
