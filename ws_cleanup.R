@@ -573,6 +573,7 @@ ws_data <- ws_data[ws_data$uuid != "496b8344-9283-40a6-91d6-2d3fe3657a38" | is.n
 ws_data <- ws_data[ws_data$uuid != "6563ae6d-3ea3-48c5-8d5e-c7700d9c5c10" | is.na(ws_data$uuid), ] # D110 Sinneh duplicate same day
 ws_data <- ws_data[ws_data$uuid != "b45bae7a-6526-48cc-800c-7bc2b276c132" | is.na(ws_data$uuid), ] # D153 keep second (more complete)
 ws_data <- ws_data[ws_data$uuid != "83482b0b-5ba8-45c9-bca2-804575afc638" | is.na(ws_data$uuid), ] # P001 keep second (more complete)
+ws_data <- ws_data[ws_data$uuid != "8b9966a7-c7fd-44e0-bcf6-800d6206d6d9" | is.na(ws_data$uuid), ] # P051 Abdulai B duplicate, wrong respondent and type
 
 # Individual Field Corrections ####
 # community

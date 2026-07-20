@@ -287,7 +287,15 @@ remove_uuids <- c(
   "cf401c54-ac21-4d34-a06b-f46221381ee2",  # D155 duplicate May
   "91dfc35e-0839-4e53-ab2e-5fc64f9a04ad",  # D157 duplicate May
   "0c4dbc9f-7635-4df8-9edc-cf9fd204494f",  # D159 duplicate May
-  "c12611ba-84d2-4fa8-afee-e914ec84ec1b"  # D160 duplicate May
+  "c12611ba-84d2-4fa8-afee-e914ec84ec1b",  # D160 duplicate May
+  "67096dec-c130-4555-855b-960f455a2c29",  # C028 Musa duplicate, name typo
+  "5b19f7dc-2148-4975-8d07-201302772102",  # C057 Musa duplicate
+  "686f4c8d-b85f-485a-9eaf-c6a1ddc6aa5b",  # D042 Jamiatu duplicate, more NAs
+  "39939c03-f24b-4b86-8bfa-7eb41d782d24",  # D095 Boboieh duplicate
+  "d8c82af3-2d57-478a-862c-cc36abb219b5",  # D098 Boboieh duplicate, more NAs, wrong source types
+  "fec68a3f-4e25-406b-a49c-3c6e9545efbd",  # D117 Jamiatu duplicate, more NAs
+  "6c3a3339-fbe2-4826-a9e9-1d7a441bdcfb",  # D262 Jamiatu duplicate same day
+  "de01ccfc-54fd-46e1-bdb7-af78c75c1ec0"  # D329 Jamiatu duplicate, more NAs
   )
 
 hh_data <- hh_data %>% filter(!uuid %in% remove_uuids)
@@ -339,7 +347,7 @@ hh_data[hh_data$uuid == "852b52f6-e0e2-4464-99ad-9de803272274", "survey_month"] 
 hh_data[hh_data$uuid == "4cba7935-5fcd-4fec-9b77-6dba1df078af", "survey_month"] <- "Jan"
 hh_data[hh_data$uuid == "b38bd3ea-085f-4af6-947f-ff17fd86b6ab", "survey_month"] <- "Jan"
 hh_data[hh_data$uuid == "c6b0899b-b387-4091-ab2d-5c8fd7571f9e", "survey_month"] <- "Jan"
-
+hh_data[hh_data$uuid == "9fcda980-7605-46b6-8c75-d88cb5b4c5e1", "survey_month"] <- "Jul"
 
 # Community Corrections ####
 hh_data[hh_data$uuid == "fc735327-7e52-4fbb-8075-396dba0bf9a5", "community"] <- "Dworzark"
