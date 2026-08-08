@@ -295,59 +295,38 @@ remove_uuids <- c(
   "d8c82af3-2d57-478a-862c-cc36abb219b5",  # D098 Boboieh duplicate, more NAs, wrong source types
   "fec68a3f-4e25-406b-a49c-3c6e9545efbd",  # D117 Jamiatu duplicate, more NAs
   "6c3a3339-fbe2-4826-a9e9-1d7a441bdcfb",  # D262 Jamiatu duplicate same day
-  "de01ccfc-54fd-46e1-bdb7-af78c75c1ec0"  # D329 Jamiatu duplicate, more NAs
-  )
+  "de01ccfc-54fd-46e1-bdb7-af78c75c1ec0",  # D329 Jamiatu duplicate, more NAs
+  # Jun duplicates (all Jamiatu)
+  "e1af761d-0610-4b68-ba40-46985be4bd2f",  # D004 Jun 30
+  "898004dc-b97a-4b0a-8fc1-314114549126",  # D005 Jun 30
+  "cd40570c-486d-40f2-a766-08cbe0a482a3",  # D013 Jun 30
+  "c4c34406-0c01-4697-a6ab-66ebd5f5903c",  # D026 Jun 18
+  "20b90bbd-e6fd-47a8-b50e-5add1453e723",  # D031 Jun 18
+  "6a1cbac8-78be-4b3f-bba3-bc83cefa71df",  # D032 Jun 18
+  "f1989e6a-ea51-4251-8f73-5789429b0121",  # D033 Jun 30
+  "a41afdd2-d79f-4b28-99d7-357d85b8d4e0",  # D034 Jun 18
+  "7ed61d90-828a-4a23-aed5-a4bb4929ef6c",  # D035 Jun 18
+  "29d8681a-22a4-45f3-a833-3a375abe99d5",  # D038 Jun 18
+  "e88337b4-b4a0-49b0-acda-ff876e9a0185",  # D039 Jun 18
+  "49b64b81-47d0-4105-8689-71e450cb047e",  # D040 Jun 18
+  "b52e55f0-bb44-4cbb-a1a4-ffe881a44d39",  # D050 Jun 18
+  "fc763869-b722-40fc-aa56-3bf60a76c348",  # D152 Jun 30
+  "8dcca3ab-042e-42c8-a4df-f43ecfe0c665",  # D153 Jun 30
+  "d9d76dee-07b7-4cc5-a19a-64a2e76487e1",  # D154 Jun 30
+  "8787035d-a111-49b1-9541-f6ff93d632d3",  # D155 Jun 30
+  "b3b284cc-5478-4196-b5a8-1f5f5b1bb102",  # D156 Jun 18
+  "62b8b0a7-0d3e-42e7-bdae-be252d790f85",  # D157 Jun 18
+  "91759199-c1cb-48f7-b75c-20628cb4eafb",  # D159 Jun 30
+  "eadeb9ad-cdaf-4e9d-903b-a7ef2775d39d",  # D160 Jun 30
+  "caba4882-a844-40dc-a90d-2fc535526916"   # D035 Jamiatu Jul 21 duplicate
+)
 
 hh_data <- hh_data %>% filter(!uuid %in% remove_uuids)
 
 # Survey Month Corrections ####
-hh_data[hh_data$uuid == "ca8f999a-213c-45f1-a1ee-547e76b3bc22", "survey_month"] <- "Nov"
-hh_data[hh_data$uuid == "a86d1670-797d-455e-ba72-d79b7821dd05", "survey_month"] <- "Nov"
-hh_data[hh_data$uuid == "dd53125d-3902-4dc4-b631-f88fc3a9b43d", "survey_month"] <- "Nov"
-hh_data[hh_data$uuid == "35c4a5b2-74c4-4e7b-aed4-d3145fe52725", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "ac7c9cf4-8cf7-4450-aff5-b342ef0c7b8f", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "828f0034-59f3-4f68-8c38-8b0f06304552", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "ae3febae-017c-4b36-b78b-69fede473b89", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "99967ee2-714e-476e-bc50-0a02bb0c4807", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "70cd449c-4fc2-49fd-97df-29a4e52def8d", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "cc65151b-9144-4c90-b897-469eb2375743", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "2742ca6f-3083-4ea0-92d0-df45ef535d71", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "817429cf-4380-416c-ba6c-58b37a9e804e", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "eb0db8b7-b56b-4612-83a5-924a3e72f969", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "4598cb35-033e-442b-9697-1a9a627671c5", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "280789e3-210d-42d6-b96c-00394ec9d987", "survey_month"] <- "Dec"
-hh_data[hh_data$uuid == "f119125e-3810-4ea7-9c0b-798be1e57a80", "survey_month"] <- "Jan"
-hh_data[hh_data$uuid == "6a2d54ba-8e66-41dd-8941-b4a6e5e6b33d", "survey_month"] <- "Jan"
-hh_data[hh_data$uuid == "b9db3d04-e36b-4ca8-8910-061bfcee5eb4", "survey_month"] <- "Jan"
-hh_data[hh_data$uuid == "73dce3fb-1d80-4e9f-bb17-60a2bc2e381f", "survey_month"] <- "Feb"
-hh_data[hh_data$uuid == "4056f266-dd1b-40c4-afc3-ac2843204cb5", "survey_month"] <- "Feb"
-hh_data[hh_data$uuid == "a28cc866-5e29-41ba-b0de-4666b2a3377f", "survey_month"] <- "Feb"
-hh_data[hh_data$uuid == "89d675b7-bd74-453d-af4b-c551a613650e", "survey_month"] <- "Feb"
-hh_data[hh_data$uuid == "4b62d2c8-bb7a-4807-a837-bf3b2d012b93", "survey_month"] <- "Feb"
-hh_data[hh_data$uuid == "2d12fbad-4dc6-46c9-af30-44b004af0583", "survey_month"] <- "Feb"
-hh_data[hh_data$uuid == "9dbf3fb1-7a2e-47ef-8499-418e4cf45cde", "survey_month"] <- "Feb"
-hh_data[hh_data$uuid == "bd4b9a30-d1c5-49bb-a772-acddd85fa80d", "survey_month"] <- "Feb"
-hh_data[hh_data$uuid == "711475da-56a6-4d34-a4a4-2364485094db", "survey_month"] <- "Mar"
-hh_data[hh_data$uuid == "0c3a51ca-908a-4663-93bd-b4a3a492f93c", "survey_month"] <- "Mar"
-hh_data[hh_data$uuid == "2acb3d70-9e2e-472e-882b-4ba00df0cd61", "survey_month"] <- "Mar"
-hh_data[hh_data$uuid == "11ddd6c1-db24-4a39-8446-bbefbce28d73", "survey_month"] <- "Mar"
-hh_data[hh_data$uuid == "b51e7e88-3d9a-4e48-94ff-409daee2ab42", "survey_month"] <- "Mar"
-hh_data[hh_data$uuid == "70ac3965-abd1-427c-92f4-9a3a2a65a7a0", "survey_month"] <- "Apr"
-hh_data[hh_data$uuid == "2aedb410-4c62-4ad0-bc52-22a42277e16d", "survey_month"] <- "Apr"
-hh_data[hh_data$uuid == "f416a478-4a78-4bce-a18d-b0cac738ce21", "survey_month"] <- "Apr"
-hh_data[hh_data$uuid == "cb02733c-4d02-48eb-8381-bfcea51ad251", "survey_month"] <- "Apr"
-hh_data[hh_data$uuid == "317c3acc-b1c9-44ab-bea0-542fcad5d854", "survey_month"] <- "Apr"
-hh_data[hh_data$uuid == "2cd43089-f1f7-4c5c-9163-fc2e7342d9be", "survey_month"] <- "May"
-hh_data[hh_data$uuid == "45c4d2cc-0aa8-41af-8694-fd540154df75", "survey_month"] <- "May"
-hh_data[hh_data$uuid == "47cb4df7-1494-4a75-b399-292b0355c591", "survey_month"] <- "May"
-hh_data[hh_data$uuid == "494b1bb2-6903-4a67-8a0f-e01c58ca8e9d", "survey_month"] <- "May"
-hh_data[hh_data$uuid == "eb795dd2-635d-4981-b316-fdedc0eebfa6", "survey_month"] <- "May"
-hh_data[hh_data$uuid == "3727c90a-1861-4766-bf35-7cc02c73242a", "survey_month"] <- "Jun"
-hh_data[hh_data$uuid == "852b52f6-e0e2-4464-99ad-9de803272274", "survey_month"] <- "Jun"
-hh_data[hh_data$uuid == "4cba7935-5fcd-4fec-9b77-6dba1df078af", "survey_month"] <- "Jan"
-hh_data[hh_data$uuid == "b38bd3ea-085f-4af6-947f-ff17fd86b6ab", "survey_month"] <- "Jan"
-hh_data[hh_data$uuid == "c6b0899b-b387-4091-ab2d-5c8fd7571f9e", "survey_month"] <- "Jan"
-hh_data[hh_data$uuid == "9fcda980-7605-46b6-8c75-d88cb5b4c5e1", "survey_month"] <- "Jul"
+hh_data$survey_month <- factor(month.abb[month(hh_data$survey_date)],
+                               levels = c("Nov", "Dec", "Jan", "Feb", "Mar", "Apr", 
+                                          "May", "Jun", "Jul", "Aug", "Sep", "Oct"))
 
 # Community Corrections ####
 hh_data[hh_data$uuid == "fc735327-7e52-4fbb-8075-396dba0bf9a5", "community"] <- "Dworzark"
