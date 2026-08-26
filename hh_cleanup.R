@@ -318,8 +318,12 @@ remove_uuids <- c(
   "62b8b0a7-0d3e-42e7-bdae-be252d790f85",  # D157 Jun 18
   "91759199-c1cb-48f7-b75c-20628cb4eafb",  # D159 Jun 30
   "eadeb9ad-cdaf-4e9d-903b-a7ef2775d39d",  # D160 Jun 30
-  "caba4882-a844-40dc-a90d-2fc535526916"   # D035 Jamiatu Jul 21 duplicate
-)
+  "caba4882-a844-40dc-a90d-2fc535526916",  # D035 Jamiatu Jul 21 duplicate
+  "fbafaa2e-33dd-48f8-a384-35bc10a35bf0",  # P067 Both Abdulais intervied this month
+  "4b09ba10-aa7c-4f46-ad91-07b156f22791",  # D097 Boboieh made error on this survey repeated to fix. 
+  "79cde129-829d-4d94-82d1-5045c2d91fd4",  # D199 Jamiatu Aug duplicate, name entered as D193
+  "0c80f479-e93a-4fcb-850b-1557bd7d84b9"   # D352 Jamiatu Aug duplicate same day
+  )
 
 hh_data <- hh_data %>% filter(!uuid %in% remove_uuids)
 
