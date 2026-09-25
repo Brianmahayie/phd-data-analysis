@@ -1828,11 +1828,45 @@ hh_data %>%
         axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
+
+```{r jmp_service_ladder}
+jmp_lookup <- read.xlsx(file.path("Updated Hints and Photos for Kobo", "ws_jmp_classification.xlsx")) %>%
+  select(wsid, jmp_classification)
+
+ws_uuid_to_jmp <- ws_data %>%
+  filter(!is.na(wsid)) %>%
+  distinct(uuid, wsid) %>%
+  left_join(jmp_lookup, by = "wsid") %>%
+  select(uuid, jmp_classification)
+
+classify_ladder <- function(jmp_type, walk_time, wait_time) {
+  trip <- 2 * as.numeric(walk_time) + as.numeric(wait_time)
+  case_when(
+    jmp_type == "Surface Water" ~ "Surface Water",
+    jmp_type %in% c("Unprotected Well", "Unprotected Spring") ~ "Unimproved",
+    jmp_type %in% c("Protected Well", "Protected Spring", "Tap", "Water Kiosk", "Improved") & trip > 30 ~ "Limited",
+    jmp_type %in% c("Protected Well", "Protected Spring", "Tap", "Water Kiosk", "Improved") & trip <= 30 ~ "Basic",
+    TRUE ~ NA_character_
+  )
+}
+
+hh_data <- hh_data %>%
+  left_join(ws_uuid_to_jmp, by = c("drinking_source_selection" = "uuid"), suffix = c("", "_drink")) %>%
+  rename(drink_jmp_type = jmp_classification) %>%
+  left_join(ws_uuid_to_jmp, by = c("domestic_source_selection" = "uuid"), suffix = c("", "_dom")) %>%
+  rename(domestic_jmp_type = jmp_classification) %>%
+  mutate(
+    drink_jmp_type = ifelse(drinking_source_type == "Sachet", "Improved", drink_jmp_type),
+    jmp_ladder_drink = classify_ladder(drink_jmp_type, drinking_walk_time, drinking_wait_time),
+    jmp_ladder_domestic = classify_ladder(domestic_jmp_type, domestic_walk_time, domestic_wait_time)
+  )
+```
+
 # Water Status vs Rainfall
 
 ```{r ladder-rainfall-setup}
-jmp_levels   <- c("Surface water", "Unimproved", "Limited", "Basic")
-jmp_colors   <- c("Surface water" = "#d73027", "Unimproved" = "#fdae61",
+jmp_levels   <- c("Surface Water", "Unimproved", "Limited", "Basic")
+jmp_colors   <- c("Surface Water" = "#d73027", "Unimproved" = "#fdae61",
                   "Limited" = "#fee08b", "Basic" = "#1a9850")
 hwise_levels <- c("High (24-36)", "Moderate (12-23)",
                   "Low (3-11)", "No-to-marginal (0-2)")
@@ -1845,27 +1879,8 @@ rain_by_mon <- c(Jan = 0,    Feb = 2,    Mar = 0,    Apr = 32,
                  May = 155,  Jun = 181,  Jul = 1079, Aug = 1009,
                  Sep = 623,  Oct = 459,  Nov = 151,  Dec = 7)
 
-improved_src   <- c("Closed Well", "Private Tap", "Public Tap", "Spring",
-                    "Tank", "Sachet", "Rainwater", "My own source")
-unimproved_src <- c("Open Well")
-surface_src    <- c("Surface Water")
-
 ladder_df <- hh_data %>%
   mutate(
-    walk = as.numeric(drinking_walk_time),
-    wait = as.numeric(drinking_wait_time),
-    trip_min = 2 * walk + wait,
-    src_class = case_when(
-      drinking_source_type %in% surface_src    ~ "Surface water",
-      drinking_source_type %in% unimproved_src ~ "Unimproved",
-      drinking_source_type %in% improved_src   ~ "Improved"
-    ),
-    jmp_ladder = case_when(
-      src_class == "Surface water"             ~ "Surface water",
-      src_class == "Unimproved"                ~ "Unimproved",
-      src_class == "Improved" & trip_min <= 30 ~ "Basic",
-      src_class == "Improved" & trip_min  > 30 ~ "Limited"
-    ),
     hwise_cat = case_when(
       hwise_total_score <= 2  ~ "No-to-marginal (0-2)",
       hwise_total_score <= 11 ~ "Low (3-11)",
@@ -1874,13 +1889,13 @@ ladder_df <- hh_data %>%
     ),
     month_lab = factor(format(survey_date, "%b"), levels = mo_order)
   ) %>%
-  filter(!is.na(jmp_ladder), !is.na(month_lab)) %>%
+  filter(!is.na(jmp_ladder_domestic), !is.na(month_lab)) %>%
   mutate(month_num = as.numeric(month_lab))
 
 jmp_part <- ladder_df %>%
-  count(month_lab, month_num, jmp_ladder) %>%
+  count(month_lab, month_num, jmp_ladder_domestic) %>%
   group_by(month_lab) %>% mutate(pct = n / sum(n) * 100) %>% ungroup() %>%
-  mutate(category = factor(jmp_ladder, levels = jmp_levels))
+  mutate(category = factor(jmp_ladder_domestic, levels = jmp_levels))
 
 hwise_part <- ladder_df %>%
   count(month_lab, month_num, hwise_cat) %>%
@@ -1945,5 +1960,7 @@ build_panel(hwise_part, hwise_colors,
 ## JMP service ladder vs rainfall
 
 ```{r jmp-rainfall, fig.width=11, fig.height=6}
-build_panel(jmp_part, jmp_colors, "JMP service ladder")
+build_panel(jmp_part, jmp_colors, "JMP service ladder") +
+  labs(caption = "Basic and Limited are separated only by gathering time. Households use the same sources,\nbut waiting times increase in the dry season.") +
+  theme(plot.caption = element_text(size = 9, hjust = 0, face = "italic"))
 ```

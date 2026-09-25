@@ -524,6 +524,7 @@ ws_data[which(ws_data$uuid == "67a1fcda-7f3e-4db4-b172-1a38483b275c"), "wsid"] <
 ws_data[which(ws_data$uuid == "74f2d77e-681e-468b-9e7c-65ca8b9541a5"), "wsid"] <- "D178"
 ws_data[which(ws_data$uuid == "7584d12b-14e3-44ff-9cb4-62f9f5d30fe6"), "wsid"] <- "D175"
 ws_data[ws_data$uuid == "8a0ffb38-4284-4393-92d3-d98a50d896ea", "surveyor_name"] <- "Sinneh" 
+ws_data$wsid <- trimws(ws_data$wsid)
 
 d012_placeholder <- ws_data %>%
   filter(wsid == "D012") %>%

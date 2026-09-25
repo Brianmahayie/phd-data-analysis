@@ -1083,3 +1083,41 @@ qual_total %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE)
 ```
 
+## JMP Categorization
+
+```{r jmp_classification}
+library(openxlsx)
+jmp_lookup <- read.xlsx(file.path("Updated Hints and Photos for Kobo", "ws_jmp_classification.xlsx")) %>%
+  select(wsid, jmp_classification)
+
+ws_data <- ws_data %>%
+  left_join(jmp_lookup, by = "wsid")
+```
+
+```{r jmp_bar, fig.width = 11, fig.height = 6}
+jmp_order <- c("Surface Water", "Unprotected Spring", "Unprotected Well", 
+               "Protected Spring", "Protected Well", "Tap", "Water Kiosk")
+
+ws_data %>%
+  filter(!is.na(jmp_classification), !is.na(community)) %>%
+  distinct(wsid, .keep_all = TRUE) %>%
+  mutate(jmp_classification = factor(jmp_classification, levels = jmp_order)) %>%
+  count(community, jmp_classification) %>%
+  ggplot(aes(x = community, y = n, fill = jmp_classification)) +
+  geom_col() +
+  geom_text(aes(label = n), position = position_stack(vjust = 0.5), size = 3.5) +
+  scale_fill_manual(values = c(
+    "Surface Water" = "#E31A1C",
+    "Unprotected Spring" = "#FF7F00",
+    "Unprotected Well" = "#FDBF6F",
+    "Protected Spring" = "#33A02C",
+    "Protected Well" = "#A6CEE3",
+    "Tap" = "#1F78B4",
+    "Water Kiosk" = "#6A3D9A"
+  )) +
+  labs(title = "Water Source Types by JMP Classification",
+       x = NULL, y = "Number of Sources", fill = NULL) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "right",
+        plot.title = element_text(face = "bold"))
+```
