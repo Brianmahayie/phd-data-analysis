@@ -1830,7 +1830,7 @@ hh_data %>%
 
 
 ```{r jmp_service_ladder}
-jmp_lookup <- read.csv(file.path("Updated Hints and Photos for Kobo", "ws_jmp_classification.csv"))) %>%
+jmp_lookup <- read.csv(file.path("Updated Hints and Photos for Kobo", "ws_jmp_classification.csv")) %>%
   select(wsid, jmp_classification)
 
 ws_uuid_to_jmp <- ws_data %>%
