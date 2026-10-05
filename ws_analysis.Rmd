@@ -1087,7 +1087,7 @@ qual_total %>%
 
 ```{r jmp_classification}
 library(openxlsx)
-jmp_lookup <- read.csv(file.path("Updated Hints and Photos for Kobo", "ws_jmp_classification.csv"))) %>%
+jmp_lookup <- read.csv(file.path("Updated Hints and Photos for Kobo", "ws_jmp_classification.csv")) %>%
   select(wsid, jmp_classification)
 
 ws_data <- ws_data %>%
