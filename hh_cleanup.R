@@ -326,7 +326,16 @@ remove_uuids <- c(
   "4d485c1c-57d4-4177-8bdd-7bb6df598553",  # D007 Jamiatu Sep 13 duplicate
   "bf8eb9d7-011b-494b-89c6-c2ab13b501ba",  # D123 Jamiatu Sep 13 duplicate, more NAs
   "870a8497-71ab-43b4-88fc-56fdc6b79615",  # P051 Abdulai K Sep 20 duplicate, wrong gender/source
-  "958affdd-f1b3-4096-bd41-bd16d970661c"   # P101 Abdulai K Sep 17 duplicate, domestic_trips=45 outlier
+  "958affdd-f1b3-4096-bd41-bd16d970661c",   # P101 Abdulai K Sep 17 duplicate, domestic_trips=45 outlier
+  "c487f531-6de5-4b12-9400-6e750500c353",  # P159 Abdulai K Oct duplicate, more NAs
+  "05234521-fade-490d-833f-a52d762d5204",  # P059 Abdulai B Oct duplicate, wrong respondent (Morlai)
+  "6a3f5f46-5f56-4948-bf11-e150b60b1d14",  # D122 Jamiatu Oct duplicate, wrong respondent (Hawanatu)
+  "6490356b-bf73-4dd2-94d7-afe220dcee05",  # D320 Jamiatu Oct 14 duplicate, more NAs
+  "6d7a1afa-b2d2-43fd-a8ce-2f4b26ccb726",  # D330 Jamiatu Oct 19 duplicate, more NAs
+  "68daa600-2bd2-4090-828e-a95d290cbc16",  # C007 Musa Oct 12 duplicate, more NAs
+  "cd2491e5-b228-45f4-9e20-83d7fdd9e01e",  # C010 Musa Oct 11 duplicate, identical
+  "8bf607e3-8afe-4442-951e-2db12396a400",  # C150 Musa Oct 9 duplicate, more NAs
+  "fb89239b-5fb9-4592-99f3-9c356ef24f2c"  # D257 Boboieh Oct 20 duplicate, more NAs
   )
 
 hh_data <- hh_data %>% filter(!uuid %in% remove_uuids)
